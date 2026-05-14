@@ -1,0 +1,983 @@
+'use client';
+
+import React, { useState,useEffect } from "react";
+import { toast } from "react-toastify";
+
+import "../CSS/Designation.css"
+import MemberSearch from "../components/MemberSearch";
+import { getAccountsByIds,getAgreementsByIds,getAgreementsIds,getMembershipAgreements ,createGPODesignateChange,getRetryRecords, UpdateGPODesignateChange,getUserIdFromToken,fetchRecords,getAgreementDetailsByIds} from "../api/member"; 
+import { queryGetAgreementDetails } from "../api/queryAgreementLineItemsByAgreement"; 
+
+export default function Designation() {
+
+const agreementId = sessionStorage.getItem("agreementId");
+  const [member, setMember] = useState(null);
+
+ const [selectedGPO, setSelectedGPO] = useState(null);
+ const showDesignationHeader = !!member?.Id;
+
+ const [rows, setRows] = useState([]);
+
+  const today = new Date().toISOString().split("T")[0];
+const [effectiveDate, setEffectiveDate] = useState(today);
+  const [tier, setTier] = useState("Tier 1");
+   const [Acc,setAcc] = useState(null);
+  const [options, setOptions] = useState([]);
+const [designated, setDesignated] = useState(null);
+const [showCheckBox, setShowCheckBox] = useState(false);
+const [showConfirm, setShowConfirm] = useState(false);
+const [retryRecords, setRetryRecords] = useState([]);
+const [showRetry, setShowRetry] = useState(false);
+const [currentDesignated, setCurrentDesignated] = useState(null);
+const [unDesignate, setUnDesignate] = useState(false);
+const [cfMsg, setCfMsg] = useState("");
+const [openModalCus, setOpenModalCus] = useState(false);
+const [custFrameagrList, setCustFrameagrList] = useState([]);
+
+const clearForm = () => {
+  setRows([]);
+  setMember(null);
+  setSelectedGPO(null);
+  setEffectiveDate(today);
+  setTier("Tier 1");
+  setOptions([]);
+  setDesignated(null);
+  setShowCheckBox(false);
+};
+useEffect(() => {
+  loadRetryRecords();
+  
+}, []);
+
+const loadRetryRecords = async () => {
+  try {
+    const UserId = await getUserIdFromToken();
+    console.log("UserId for retry", UserId);
+    const data = await getRetryRecords(UserId);
+console.log("retry data", data);
+    if (data.length > 0) {
+      setRetryRecords(data);
+      setShowRetry(true);
+    } else {
+      setShowRetry(false);
+    }
+  } catch (e) {
+    console.error(e);
+  }
+};
+useEffect(() => {
+   loadData();
+   console.log("account",Acc);
+   if (Acc && Acc.length > 0) {
+    const accRecord = Acc[0]?.Account;
+
+    if (accRecord) {
+      setSelectedGPO({
+        Id: accRecord.Id,
+        Name: accRecord.Name
+      });
+    }
+  }
+  if (!member?.Name) return;
+
+//   const load = async () => {
+//     const data = await getAccounts({
+//       filters: {
+//         Market_c: "North America",
+//         Country_c: "United States",
+//         Inactive_Flag_c: false,
+//         Golden_Record_Key_c: { notNull: true },
+//         Name: member.Name // EXACT MATCH
+//       }
+//     });
+// console.log("dataoption",data);
+// const mapped = data.map(rec => {
+//   const isDesignated = !!rec.Designated_GPO_c;
+
+//   if (isDesignated) {
+//     setCurrentDesignated(rec.Id); // store designated
+//     setShowCheckBox(true);        // show checkbox initially
+//   }
+
+//   return {
+//     label: `${rec.Designated_GPO_c?.Name || "No GPO"} ${
+//       isDesignated ? "(Designated)" : ""
+//     }`,
+//     value: rec.Id,
+//     isDesignated
+//   };
+// });
+
+// setOptions(mapped);
+// const designatedOption = mapped.find(o => o.isDesignated);
+
+// if (designatedOption) {
+//   setDesignated(designatedOption.value); 
+// }
+   
+//  console.log("hdshe",mapped);
+//     setOptions(mapped);
+//      console.log("hdshe",options);
+//   };
+
+const load = async () => {
+  // STEP 1: Contracts
+  const contracts = await getMembershipAgreements(member.Id);
+
+  const agreementIds = contracts
+    .map(c => c.APTS_Related_Agreement_c)
+    .filter(Boolean);
+
+  if (!agreementIds.length) {
+    setOptions([]);
+    return;
+  }
+
+  // STEP 2: Agreements
+  const agreements = await getAgreementsIds(agreementIds);
+console.log("agreements", agreements);
+  const accountIds = [
+    ...new Set(agreements.map(a => a.Account?.Id))
+  ];
+console.log("accountIds", accountIds);
+  // STEP 3: Accounts
+  const accounts = await getAccountsByIds(accountIds);
+
+  // STEP 4: Map to radio options
+  // const mapped = accounts.map(acc => {
+  //   return {
+  //     label: acc.Name,
+  //     value: acc.Id,
+  //     isDesignated: acc.Id === member.Designated_GPO__c // adjust if needed
+  //   };
+  // });
+const mapped = accounts.map(acc => {
+  console.log("mapping account", acc.Id, member.Id);
+  console.log("current designated", member.Designated_GPO_c);
+ // const isDesignated = acc.Id === member.Id;
+ const designatedId =
+  member.Designated_GPO_c?.Id ||
+  member.Designated_GPO_c;
+
+const isDesignated = acc.Id === designatedId;
+//  const isDesignated = acc.Id === member.Designated_GPO_c.Id;
+  return {
+    label: isDesignated
+      ? `${acc.Name} (Designated)`
+      : acc.Name,
+    value: acc.Id,
+    isDesignated
+  };
+});
+setOptions(mapped);
+
+ setShowCheckBox(false);
+const designatedOption = mapped.find(o => o.isDesignated);
+
+if (designatedOption) {
+  console.log(
+    "Found designated option",
+    designatedOption
+  );
+  setDesignated(designatedOption.value);   
+  setCurrentDesignated(designatedOption.value); // optional but useful
+  setShowCheckBox(true); 
+} else {
+
+  console.log("No designated option found");
+
+  setDesignated(null);
+  setShowCheckBox(false);
+}
+  // setOptions(mapped);
+
+  // const designated = mapped.find(o => o.isDesignated);
+  // if (designated) {
+  //   setDesignated(designated.value);
+  //   setShowCheckBox(true);
+  // }
+};
+  load();
+}, [member],[Acc]);
+   const loadData = async () => {
+      try {       
+const trying = await queryGetAgreementDetails(agreementId);
+  console.log(trying);
+  setAcc(trying);
+
+
+      } catch (err) {
+        console.error(err);
+      } 
+    };
+ const handleAddRow = () => {
+  if (!member || !selectedGPO) {
+    alert("Select Member and GPO");
+    return;
+  }
+
+  const newRow = {
+    id: Date.now(),
+    memberName: member.Name,
+    memberId: member.Id,
+    gpoName: selectedGPO.Name,
+    gpoId: selectedGPO.Id,
+    effectiveDate,
+    tier
+  };
+
+  setRows((prev) => [...prev, newRow]);
+};
+
+
+// const checkMembershipAgreements = async (memberId, newGpoId) => {
+//   try {
+//     const contracts = await getMembershipAgreements(memberId);
+// console.log("contracts", contracts);
+//     if (!contracts || contracts.length === 0) return 0;
+
+//     let allAgreements = [];
+
+//     //  Step 1: Fetch ALL agreements
+//     for (let contract of contracts) {
+//       if (contract.APTS_Related_Agreement_c) {
+//         const agr = await getAgreementById(
+//           contract.APTS_Related_Agreement_c
+//         );
+// console.log("agr for contract", contract.Id, agr);
+//         if (agr && agr.length > 0) {
+//           allAgreements.push(...agr);
+//         }
+//       }
+//     }
+
+//     const todayDate = new Date();
+
+//     //  Step 2: Apply EXACT same conditions as LWC/Apex
+//     const validAgreements = allAgreements.filter((agr) => {
+//       return (
+//         console.log("Checking agreement", agr.Id, ),
+//         agr.ContractEndDate &&
+//         new Date(agr.ContractEndDate) > todayDate &&
+
+//         agr.APTS_Member_SAP_Status_c === "In Progress" &&
+
+//         //  IMPORTANT: handle both cases (Id or direct value)
+//         (agr.Account === newGpoId || agr.Account?.Id === newGpoId) &&
+
+//         agr.Status === "Activated" &&
+//         agr.StatusCategory === "In Effect"
+//       );
+//     });
+
+//     console.log("Valid agreements after filter:", validAgreements);
+
+//     return validAgreements.length;
+
+//   } catch (e) {
+//     console.error("Error in membership check", e);
+//     return 0;
+//   }
+// };
+
+const checkMembershipAgreements = async (
+  memberId,
+  newGpoId
+) => {
+
+  try {
+
+    /*
+      STEP 1:
+      Get contracts
+    */
+
+    const contracts =
+      await getMembershipAgreements(memberId);
+
+    console.log("contracts", contracts);
+
+   if (!contracts || contracts.length === 0) {
+      return 0;
+    }
+
+
+    const AccountIds = [];
+
+    contracts.forEach(c => {
+
+      // const Account =
+      //   c?.APTS_Member_c?.Designated_GPO_c ||
+      //   c?.APTS_Member_c?.Designated_GPO_c?.Id;
+
+      const Account = c?.APTS_Member_c
+console.log("Account for contract", c.Id, Account);
+      if (Account) {
+        AccountIds.push(Account);
+      }
+    });
+    console.log("AccountIds", AccountIds);
+ const designate = await getAccountsByIds(AccountIds);
+
+     const designatedIds = [];
+
+    designate.forEach(c => {
+
+      // const designated =
+      //   c?.APTS_Member_c?.Designated_GPO_c ||
+      //   c?.APTS_Member_c?.Designated_GPO_c?.Id;
+
+      const designated = c?.Designated_GPO_c?.Id || c?.Designated_GPO_c;
+console.log("designated for contract", c.Id, designated);
+      if (designated) {
+        designatedIds.push(designated);
+      }
+    });
+    console.log("designatedIds", designatedIds);
+    
+
+
+    const agreementIds = contracts
+      .map(c => c.APTS_Related_Agreement_c)
+      .filter(Boolean);
+
+    if (!agreementIds.length) {
+      return 0;
+    }
+
+
+    const agreements =
+      await getAgreementsByIds(agreementIds);
+
+    console.log("agreements", agreements);
+
+    const todayDate = new Date();
+
+    const validAgreements =
+      agreements.filter(agr => {
+
+        const agrAccount =
+          agr.Account?.Id || agr.Account;
+
+        return (
+
+          agr.ContractEndDate &&
+          new Date(agr.ContractEndDate) > todayDate &&
+
+          agr.APTS_Agreement_SAP_Status_c ===
+            "In Progress" &&
+
+          (
+            agrAccount === newGpoId ||
+            designatedIds.includes(agrAccount)
+          ) 
+        );
+      });
+
+    console.log(
+      "validAgreements",
+      validAgreements
+    );
+
+    return validAgreements.length;
+
+  } catch (e) {
+
+    console.error(
+      "Error in membership check",
+      e
+    );
+
+    return 0;
+  }
+};
+const handleConfirmYes = async () => {
+  try {
+    for (let r of rows) {
+      const payload = {
+        Name: `Change Designation - ${r.memberName} to ${r.gpoName}`,
+        APTS_Member_Account_c:{Id: r.memberId,Name: r.memberName},
+        APTS_Designated_GPO_c: {Id: r.gpoId, Name: r.gpoName},
+        APTS_Start_date_c: r.effectiveDate,
+        APTS_Order_Intake_Volume_Tier_c: r.tier,
+        APTS_Un_designate_c: unDesignate,
+        APTS_Customer_MP1_Id_c: member.MP1_Customer_id_1_c,
+        APTS_Status_c: "Not Processed"
+      };
+
+      await createGPODesignateChange(payload);
+    }
+
+    toast.success("GPO Designation Change Created!");
+
+    //  Clear everything
+    clearForm();
+
+    // close modal
+    setShowConfirm(false);
+
+  } catch (e) {
+    console.error(e);
+    toast.error("Failed to create designation");
+  }
+};
+const handleRetry = async () => {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+
+    for (let rec of retryRecords) {
+      let updatedDate = rec.APTS_Start_date_c;
+
+      // Fix past date
+      if (updatedDate && updatedDate < today) {
+        updatedDate = today;
+      }else{
+        updatedDate = rec.APTS_Start_date_c;
+      }
+
+      const payload = {
+        APTS_Start_date_c: updatedDate,
+        APTS_Status_c: "Not Processed",
+        APTS_Error_Message_c: null
+      };
+
+      await UpdateGPODesignateChange(rec.Id, payload);
+    }
+
+    toast.success("Records are submitted");
+
+    // Refresh state
+    setRetryRecords([]);
+    setShowRetry(false);
+
+  } catch (e) {
+    console.error(e);
+    toast.error("Retry failed");
+  }
+};
+
+const handleDesignationValidation = async () => {
+
+  try {
+     if (unDesignate) {
+
+    console.log(
+      "UnDesignate checked - skipping validations"
+    );
+
+    handleAddRow();
+
+    return;
+  }
+
+    // MEMBER VALIDATION
+    if (!member || !selectedGPO) {
+      toast.error("Please Select the GPO Account");
+      return;
+    }
+
+    // DATE VALIDATION
+    if (effectiveDate < today) {
+      toast.error("Please Select the future date from Date picker to proceed further.");
+      return;
+    }
+
+    // SAP VALIDATION
+    const count = await checkMembershipAgreements(
+      member.Id,
+      selectedGPO.Id
+    );
+console.log("Valid agreement count for validation", count);
+    if (count > 0) {
+      toast.error(
+        "Member SAP status In Progress. Please try after sometime"
+      );
+      return;
+    }
+
+    // DUPLICATE VALIDATION
+    const duplicateRecords =
+      await fetchRecords(member.Id);
+console.log("duplicateRecords", duplicateRecords);
+    if (duplicateRecords.length > 0) {
+      toast.error(
+        "Duplicate record is identified of member designate change."
+      );
+      return;
+    }
+
+    // SAME GPO VALIDATION
+    if (
+      currentDesignated &&
+      currentDesignated === selectedGPO.Id
+    ) {
+      toast.error(
+        "Member is already designated to the same GPO. Please create a new membership record for the same designated GPO."
+      );
+      return;
+    }
+
+    // CFA VALIDATION
+// CFA VALIDATION
+const memberContracts = await getMembershipAgreements(member.Id);
+
+console.log("memberContracts", memberContracts);
+console.log("member.Id", member.Id);
+const accountIds = memberContracts
+  .map(c => c.APTS_Member_c)
+  .filter(Boolean);
+ console.log("accountIds from contracts", accountIds);
+  const designate = await getAccountsByIds(accountIds);
+
+     const designatedIds = [];
+
+    designate.forEach(c => {
+
+      const designated = c?.Designated_GPO_c?.Id || c?.Designated_GPO_c;
+console.log("accountIds from contracts designated for contract", c.Id, designated);
+      if (designated) {
+        designatedIds.push(designated);
+      }
+    });
+    console.log("designatedIds", designatedIds); 
+if (memberContracts && memberContracts.length > 0) {
+
+  let misccount = 0;
+  let mismcount = 0;
+
+  const cfagrlist = [];
+
+
+  const agreementIds = memberContracts
+    .map(rec => rec.APTS_Related_Agreement_c)
+    .filter(Boolean);
+
+
+
+  const agreements = await getAgreementDetailsByIds(
+    agreementIds,designatedIds,member.Id
+  );
+
+  console.log("agreements", agreements);
+
+  const agreementMap = {};
+
+  agreements.forEach(agr => {
+    agreementMap[agr.Id] = agr;
+  });
+
+
+
+  for (let rec of memberContracts) {
+
+    const agr =
+      agreementMap[rec.APTS_Related_Agreement_c];
+
+    if (!agr) continue;
+
+
+    const agrAccount =
+      agr.Account?.Id || agr.Account;
+console.log("agrAccount", agrAccount, "designatedIds", designatedIds);
+
+    const memberAccountId =rec.APTS_Member_c;
+
+if (
+  memberAccountId === member.Id &&
+  agrAccount === member.Id
+){
+
+      misccount++;
+      console.log("misccount", misccount);
+
+    } else {
+
+      mismcount++;
+      console.log("mismcount", mismcount);
+    }
+
+    cfagrlist.push({
+      Name: agr.Name,
+      AgmntId: agr.Id
+    });
+  }
+
+  console.log("misccount", misccount);
+  console.log("mismcount", mismcount);
+
+  if (cfagrlist.length > 0) {
+
+    setCustFrameagrList(cfagrlist);
+
+    if (misccount > 0) {
+
+      setCfMsg(
+        "Member is the customer of a CFA - a participant of a local agreement (LSP,MST,CAA,PSP). Do you want to proceed with Designation?"
+      );
+
+    } else if (mismcount > 0) {
+
+      setCfMsg(
+        "Member is a member of a CFA - a participant of a local agreement (LSP,MST,CAA,PSP). Do you want to proceed with Designation?"
+      );
+    }
+
+    setOpenModalCus(true);
+
+    return;
+  }
+}
+
+// FINAL
+handleAddRow();
+
+  } catch (e) {
+    console.error(e);
+    toast.error("Validation failed");
+  }
+};
+
+  return (
+    <div className="page-container">
+      
+      {/* HEADER */}
+      <div className="header" style={{justifyContent:"center"}}>Designation Page</div>
+ 
+      {/* FILTER SECTION */}
+
+      <div className="filter-container">
+        {showRetry && (
+  <div style={{ marginBottom: "10px" }}>
+    <span style={{ fontWeight: "bold" }}>
+      Retry Failed Designation:
+    </span>
+
+    <button
+      className="btn-primary"
+      style={{ marginLeft: "10px" }}
+      onClick={handleRetry}
+    >
+      Retry
+    </button>
+  </div>
+)}
+  <div className="filter-group">
+    <label>Filter By Market</label>
+    <select>
+      <option>North America</option>
+    </select>
+  </div>
+ 
+  <div className="filter-group">
+    <label>Filter By Sales Area</label>
+    <select>
+      <option>United States</option>
+    </select>
+  </div>
+ 
+  <div className="filter-group">
+    <label>Select Member</label>
+    <MemberSearch
+  value={member}
+  onChange={(rec) => {
+    setMember(rec);
+    console.log("selected member", rec);
+    console.log("member", member);
+  }}
+  type="MEMBER"
+/>
+   
+  </div>
+</div>
+ 
+      {/* CONDITIONAL DESIGNATION HEADER */}
+      {showDesignationHeader && (
+        <>
+        <div className="designation" >
+     Designation Form Header
+        </div>
+        <div className="designation-header">
+          <table className="designation-table">
+            <th>Existing Membership </th>
+            <th>Effective Date</th>
+            <th>Order Intake Volume Tier</th>
+            <th>Add New GPO Membership</th>
+            <tbody>
+              <tr>
+                <td>The list below shows all existing Membership records. The selected one is the currently designated one. If none of them are selected, then the member is not designated to any GPO.
+                  {options.length > 0 && (
+  <div>
+   
+    {options.map(opt => (
+      <label key={opt.value}>
+        <input
+  type="radio"
+  name="designation"
+  value={opt.value}
+  checked={designated === opt.value}   
+  onChange={(e) => {
+  const val = e.target.value;
+  setDesignated(val);
+
+  const selected = options.find(o => o.value === val);
+
+  // LWC logic equivalent
+  if (selected?.label.includes("(Designated)")) {
+    setShowCheckBox(true);
+  } else {
+    setShowCheckBox(false);
+    setUnDesignate(false); // reset checkbox
+  }
+}}
+  // onChange={(e) => {
+  //   const val = e.target.value;
+  //   setDesignated(val);
+
+  //   const selected = options.find(o => o.value === val);
+
+  //   if (selected?.isDesignated) {
+  //     setShowCheckBox(true);
+  //   } else {
+  //     setShowCheckBox(false);
+  //     setUnDesignate(false); // reset checkbox
+  //   }
+  // }}
+/>
+        {/* <input
+          type="radio"
+          name="designation"
+          value={opt.value}
+          onChange={(e) => {
+            const val = e.target.value;
+            setDesignated(val);
+
+            const selected = options.find(o => o.value === val);
+
+            if (selected.label.includes("Designated")) {
+              setShowCheckBox(true);
+            } else {
+              setShowCheckBox(false);
+            }
+          }}
+        /> */}
+        {opt.label}
+      </label>
+    ))}
+  </div>
+)}
+{showCheckBox && (
+  <div style={{ marginTop: "10px" }}>
+    <label>
+      <input
+        type="checkbox"
+        checked={unDesignate}
+        onChange={(e) => setUnDesignate(e.target.checked)}
+      />
+      {" "}Un-Designate
+    </label>
+  </div>
+)}
+                </td>
+                <td><input
+                type="date"
+                value={effectiveDate}
+                onChange={(e) => setEffectiveDate(e.target.value)}
+              /></td>
+              <td>
+              <select value={tier} onChange={(e) => setTier(e.target.value)} className="select">
+                <option>Tier 1</option>
+                <option>Tier 2</option>
+              </select>
+              </td>
+              <td>
+You can create new membership records and designate the member to the select GPO.
+<div className="filter-group">
+  <label>Select GPO</label>
+  
+  <MemberSearch
+  value={selectedGPO}
+  onChange={setSelectedGPO}
+  type="GPO"
+/>
+</div>
+</td>
+              </tr>
+            </tbody>
+          </table>
+          <div className="button-container">
+          {/* <button
+  className="btn-primary"
+  onClick={async () => {
+    if (!member || !selectedGPO) {
+      toast.error("Select Member and GPO");
+      return;
+    }
+
+    if (effectiveDate < today) {
+      toast.error("Please select future date");
+      return;
+    }
+console.log("memberId", member.Id);
+console.log("selectedGPOId", selectedGPO.Id);
+    const count = await checkMembershipAgreements(
+      member.Id,
+      selectedGPO.Id
+    );
+console.log("valid agreement count", count);
+    if (count > 0) {
+      console.log("Existing valid agreements found:", count);
+      toast.error(
+        "Member SAP status In Progress. Please try after sometime"
+      );
+      return;
+    }
+
+    //  Only after validation
+    handleAddRow();
+  }}
+> */}
+<button
+  className="btn-primary"
+  onClick={handleDesignationValidation}
+>
+  Submit Designated Change Request
+</button></div>
+           
+        </div>
+        </>
+      )}
+ {showConfirm && (
+  <div className="modal-overlay">
+    <div className="modal-box">
+      <h3>Confirmation</h3>
+      <p>Are you sure that you want to add/change the GPO Designation?</p>
+
+      <div className="modal-actions">
+        <button
+          className="btn-primary"
+          onClick={handleConfirmYes}
+        >
+          Yes
+        </button>
+
+        <button
+          className="btn-secondary"
+          onClick={() => setShowConfirm(false)}
+        >
+          No
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+{openModalCus && (
+  <div className="modal-overlay">
+    <div className="modal-box">
+
+      <h3>Confirmation</h3>
+
+      <p>{cfMsg}</p>
+
+      <div className="modal-actions">
+
+        <button
+          className="btn-primary"
+          onClick={() => {
+
+            setOpenModalCus(false);
+
+            handleAddRow();
+          }}
+        >
+          Yes
+        </button>
+
+        <button
+          className="btn-secondary"
+          onClick={() => {
+            setOpenModalCus(false);
+          }}
+        >
+          No
+        </button>
+
+      </div>
+    </div>
+  </div>
+)}
+      {/* TABLE SECTION */}
+      { showDesignationHeader &&
+      <>
+      <div className="table-section">
+        <h4>Designated Form Request</h4>
+ 
+        <table>
+          <thead>
+            <tr>
+              <th>Member Account</th>
+              <th>Designated GPO</th>
+              <th>Effective Date</th>
+              <th>Order Intake Volume Tier</th>
+              <th>Delete</th>
+            </tr>
+          </thead>
+ 
+        
+          <tbody>
+  {rows.length === 0 ? (
+    <tr>
+      <td colSpan="5" style={{ textAlign: "center" }}>
+        No Data
+      </td>
+    </tr>
+  ) : (
+    rows.map((r) => (
+      <tr key={r.id}>
+        <td>{r.memberName}</td>
+        <td>{r.gpoName}</td>
+        <td>{r.effectiveDate}</td>
+        <td>{r.tier}</td>
+        <td>
+          <button onClick={() =>
+            setRows(rows.filter((x) => x.id !== r.id))
+          }>
+            ❌
+          </button>
+        </td>
+      </tr>
+    ))
+  )}
+</tbody>
+        </table>
+      </div>
+ 
+      {/* FOOTER ACTIONS */}
+      <div className="footer">
+      
+ 
+        <div style={{ margin: "10px" }}>
+         
+          <button
+className="btn-primary"
+disabled={rows.length === 0}
+  onClick={() => setShowConfirm(true)}
+>
+  Designate
+</button>
+       
+<button
+ className="btn-primary"
+  onClick={clearForm}
+  style={{ margin: "10px" }}
+>
+  Clear Form
+</button>
+
+        </div>
+      </div>
+      </>
+  }
+    </div>
+  );
+}
