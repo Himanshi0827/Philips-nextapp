@@ -85,6 +85,7 @@ function DiscountPopup({product,mode,onSave,onClose,data,onChange,prev,index,onC
   };
 
   const canEditVolumeThreshold = (discounts, thresholds, ind) => {
+    if (hasValue(thresholds[ind])) return true;
     return ind === 0
       ? hasValue(discounts[0])
       : hasValue(discounts[ind]) && hasValue(thresholds[ind - 1]);
