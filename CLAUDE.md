@@ -70,20 +70,35 @@ See [.env.example](.env.example). Required when the env-var refactor (see Known 
 - `NEXT_PUBLIC_OIDC_REDIRECT_URI`
 - `NEXT_PUBLIC_API_BASE_URL`
 
-**The code does not read these yet.** URLs are hardcoded in `src/api/*.ts`. This refactor is required before Vercel deploys can authenticate end-to-end.
+**The code does not read these yet.** URLs are hardcoded in `src/api/*.ts`. This refactor is required before either Vercel or Netlify deploys can authenticate end-to-end.
 
-## Vercel deployment
+## Deployment
+
+The repo is configured to deploy to **both Vercel and Netlify**. Pick one (or run both for testing) — the two configs don't conflict.
+
+### Vercel
 
 1. Push the repo to GitHub.
 2. Import in Vercel — framework is auto-detected as Next.js (default build/install/output commands work).
 3. Under Project Settings → Environment Variables, set the four `NEXT_PUBLIC_*` vars for Production and Preview.
 4. Register `https://<vercel-domain>/callback` as an allowed redirect URI in the Conga OIDC client. Without this, login fails with `invalid redirect_uri`.
 
-No `vercel.json` needed for a baseline deploy. Default Node runtime is fine. `netlify.toml` was removed during conversion.
+No `vercel.json` needed for a baseline deploy. Default Node runtime is fine.
+
+### Netlify
+
+[netlify.toml](netlify.toml) declares the build command and the `@netlify/plugin-nextjs` runtime plugin (Netlify auto-installs declared plugins).
+
+1. Push the repo to GitHub.
+2. In Netlify, "Add new site" → "Import an existing project" → pick the repo. Build command and publish directory are read from `netlify.toml`.
+3. Under Site settings → Environment variables, set the four `NEXT_PUBLIC_*` vars.
+4. Register `https://<netlify-domain>/callback` as an allowed redirect URI in the Conga OIDC client.
+
+The `@netlify/plugin-nextjs` plugin handles SSR/serverless routing for the dynamically-rendered routes (see `force-dynamic` note above).
 
 ## Known issues
 
-**Build bypasses TypeScript type-checking.** [next.config.ts](next.config.ts) sets `typescript.ignoreBuildErrors: true` because the converted code has ~1100 pre-existing TS strict-mode errors across 39 files (implicit-any params, missing `useState` generics producing `never` types, `useParams()` returning `ParamValue | undefined` used where `string` is expected). Builds succeed and Vercel deploys will work, but type errors will not block CI until this flag is removed. Top offenders:
+**Build bypasses TypeScript type-checking.** [next.config.ts](next.config.ts) sets `typescript.ignoreBuildErrors: true` because the converted code has ~1100 pre-existing TS strict-mode errors across 39 files (implicit-any params, missing `useState` generics producing `never` types, `useParams()` returning `ParamValue | undefined` used where `string` is expected). Builds succeed and Vercel / Netlify deploys will work, but type errors will not block CI until this flag is removed. Top offenders:
 
 - `app/clone/[agreementId]/page.tsx` (138 errors)
 - `src/components/DiscountPop.tsx` (116)
@@ -97,7 +112,7 @@ No `vercel.json` needed for a baseline deploy. Default Node runtime is fine. `ne
 
 ## Follow-ups
 
-- Refactor `src/api/api.ts` and its nine siblings (`GetLookup`, `GetParentProduct`, `GetPicklist`, `GetProductsByParent`, `member`, `PriceList`, `queryAgreementLineItemsByAgreement`, `Records`, `SearchLookup`) to read `process.env.NEXT_PUBLIC_*` instead of literal URLs. Required for the Vercel deploy to authenticate.
+- Refactor `src/api/api.ts` and its nine siblings (`GetLookup`, `GetParentProduct`, `GetPicklist`, `GetProductsByParent`, `member`, `PriceList`, `queryAgreementLineItemsByAgreement`, `Records`, `SearchLookup`) to read `process.env.NEXT_PUBLIC_*` instead of literal URLs. Required for either Vercel or Netlify deploys to authenticate.
 - Fix the TS errors per the Known issues list, then drop `typescript.ignoreBuildErrors` from [next.config.ts](next.config.ts).
 - Fix the lint errors so `npm run lint` exits 0.
 - Migrate relative `../../src/...` imports to the `@/*` alias.
