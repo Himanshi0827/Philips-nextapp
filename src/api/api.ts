@@ -6,7 +6,8 @@ const API_URL =
   authority: "https://login-rlspreview.congacloud.com/api/v1/auth",
   
   client_id:"e77fc3cf-b8d0-4c60-a5e0-e0cbf614247f",
-  redirect_uri: "https://localhost:3000/callback",
+ // redirect_uri: "https://localhost:3000/callback",
+    redirect_uri: "https://philips-next.netlify.app/callback",
   response_type: "code",
   scope: "openid",
   // userStore: new WebStorageStateStore({ store: window.localStorage }),
