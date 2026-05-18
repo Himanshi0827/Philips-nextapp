@@ -34,10 +34,7 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts",
-    "app/page.jsx",
-    "src/api/api.js",
-    "src/api/queryAgreementLineItemsByAgreement.js", "app/callback/page.jsx"
+    "**/*.mts"
   ],
   "exclude": [
     "node_modules"
