@@ -144,7 +144,7 @@ onSuccess && onSuccess();
 };
 
  const isGPOFramework =
-    agreementDetails?.RecordType === "GPO Framework" &&
+    agreementDetails?.RecordType === "GPO_Framework" &&
     agreementDetails?.APTS_Sales_Area_c === "United States" &&
     agreementDetails?.Apttus_Market_c === "North America" &&
     agreementDetails?.StatusCategory === "In Effect";

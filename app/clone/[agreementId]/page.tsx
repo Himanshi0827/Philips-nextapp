@@ -38,6 +38,9 @@ const [sourceGroup, setSourceGroup] = useState([]);
   const [lineItems, setLineItems] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
 const [agreementPlist, setAgreementPlist] = useState([]);
+ const [wrapColumns, setWrapColumns] = useState({});
+const [columnWidths, setColumnWidths] = useState({});
+const [openMenu, setOpenMenu] = useState(null);
   /*  Load Source Line Items  */
 useEffect(() => {
   if (!sourceAgreement) return;
@@ -296,6 +299,86 @@ const handleSelectAll = (checked) => {
     setSelectedItems([]);
   }
 };
+const toggleColumnWrap = (columnKey, mode) => {
+  setWrapColumns((prev) => ({
+    ...prev,
+    [columnKey]: mode,
+  }));
+};
+
+const columns = [
+  { key: "Name", label: "Name" },
+  { key: "AgreementGroup", label: "Agreement Group" },
+  { key: "LineType", label: "Line Type" },
+  { key: "DiscountType", label: "Discount Type" },
+  { key: "MatchProducts", label: "Match Products By" },
+  { key: "BillingPlan", label: "Billing Plan" },
+  { key: "MG3", label: "MG3" },
+  { key: "Tier1", label: "Tier 1" },
+  { key: "Tier2", label: "Tier 2" },
+  { key: "Tier3", label: "Tier 3" },
+  { key: "Tier4", label: "Tier 4" },
+  { key: "Tier5", label: "Tier 5" },
+  { key: "ScaledDiscountT1", label: "Scaled Discount %, Tier 1" },
+  { key: "ScaledDiscountT2", label: "Scaled Discount %, Tier 2" },
+  { key: "ScaledDiscountT3", label: "Scaled Discount %, Tier 3" },
+  { key: "ScaledDiscountT4", label: "Scaled Discount %, Tier 4" },
+  { key: "ScaledDiscountT5", label: "Scaled Discount %, Tier 5" },
+  { key: "VolumeThreshold1", label: "Volume Threshold 1" },
+  { key: "VolumeThreshold2", label: "Volume Threshold 2" },
+  { key: "VolumeThreshold3", label: "Volume Threshold 3" },
+  { key: "VolumeThreshold4", label: "Volume Threshold 4" },
+  { key: "VolumeThreshold5", label: "Volume Threshold 5" },
+   { key: "NPO1", label: "NPO Tier 1" },
+   { key: "NPO2", label: "NPO Tier 2" },
+   { key: "NPO3", label: "NPO Tier 3" },
+   { key: "NPO4", label: "NPO Tier 4" },
+   { key: "NPO5", label: "NPO Tier 5" },
+   { key: "NPO6", label: "NPO Tier 6" },
+   { key: "NPO7", label: "NPO Tier 7" },
+   { key: "ScaledDiscountAmtT1", label: "Scaled Discount Amt, Tier 1" },
+   { key: "ScaledDiscountAmtT2", label: "Scaled Discount Amt, Tier 2" },
+   { key: "ScaledDiscountAmtT3", label: "Scaled Discount Amt, Tier 3" },
+   { key: "ScaledDiscountAmtT4", label: "Scaled Discount Amt, Tier 4" },
+   { key: "ScaledDiscountAmtT5", label: "Scaled Discount Amt, Tier 5" }
+];
+const startResize = (e, columnKey) => {
+  e.preventDefault();
+
+  const startX = e.pageX;
+  const startWidth = columnWidths[columnKey] || 180;
+
+  const onMouseMove = (moveEvent) => {
+    const newWidth =
+      startWidth + (moveEvent.pageX - startX);
+
+    setColumnWidths((prev) => ({
+      ...prev,
+      [columnKey]: Math.max(newWidth, 80),
+    }));
+  };
+
+  const onMouseUp = () => {
+    document.removeEventListener(
+      "mousemove",
+      onMouseMove
+    );
+    document.removeEventListener(
+      "mouseup",
+      onMouseUp
+    );
+  };
+
+  document.addEventListener(
+    "mousemove",
+    onMouseMove
+  );
+  document.addEventListener(
+    "mouseup",
+    onMouseUp
+  );
+};
+
   return (<div className="clone-container">
 
   <TopBar
@@ -483,8 +566,68 @@ onChange={(record) => {
     }
   />
 </th>
+{columns.map((col) => (
+  <th
+    key={col.key}
+    style={{
+      width: columnWidths[col.key] || 100,
+      minWidth: columnWidths[col.key] || 80,
+    }}
+    className="resizable-header"
+  >
+    {/* <div className="header-content"> */}
+     
+
+    <div className="header-menu">
+       <span>{col.label}</span>
+  <button
+    type="button"
+    className="header-menu-btn"
+    onClick={() =>
+      setOpenMenu(
+        openMenu === col.key ? null : col.key
+      )
+    }
+  >
+    ▼
+  </button>
+
+  {openMenu === col.key && (
+    <div className="header-dropdown">
+      <div
+        className="dropdown-item"
+        onClick={() => {
+          toggleColumnWrap(col.key, "clip");
+          setOpenMenu(null);
+        }}
+      >
+        Clip text
+      </div>
+
+      <div
+        className="dropdown-item"
+        onClick={() => {
+          toggleColumnWrap(col.key, "wrap");
+          setOpenMenu(null);
+        }}
+      >
+        Wrap text
+      </div>
+    </div>
+  )}
+</div>
+    {/* </div> */}
+
+    <div
+      className="resize-handle"
+      onMouseDown={(e) =>
+        startResize(e, col.key)
+      }
+    />
+  </th>
+))}
             {/* <th></th> */}
-              <th>Name</th>
+              {/* <th>Name</th>
               <th>Agreement Group</th>
               <th>Line Type</th>
               <th>Discount Type</th>
@@ -508,7 +651,7 @@ onChange={(record) => {
                       <th>Volume Threshold 4</th>
                       <th>Volume Threshold 5</th>
                        <th>NPO1</th><th>NPO2</th><th>NPO3</th><th>NPO4</th><th>NPO5</th><th>NPO6</th><th>NPO7</th>
-                       <th>Scale Discount Amt T1</th><th>Scale Discount Amt T2</th><th>Scale Discount Amt T3</th><th>Scale Discount Amt T4</th><th>Scale Discount Amt T5</th>
+                       <th>Scale Discount Amt T1</th><th>Scale Discount Amt T2</th><th>Scale Discount Amt T3</th><th>Scale Discount Amt T4</th><th>Scale Discount Amt T5</th> */}
           </tr>
         </thead>
         <tbody>
@@ -536,8 +679,16 @@ onChange={(record) => {
                     onChange={() => toggleSelect(item)}
                   /> */}
                 </td>
-                <td>{item.Name}</td>
-                <td>
+                <td  className={
+    wrapColumns["Name"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.Name}</td>
+                <td className={
+    wrapColumns["AgreementGroup"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>
   {item.APTS_Agreement_Group_c?.Id ? (
     <a
       href={`https://preview-rls09.congacloud.com/admin/entity/APTS_Agreement_Groups_c/detail/${item.APTS_Agreement_Group_c.Id}/`}
@@ -552,39 +703,167 @@ onChange={(record) => {
   )}
 </td>
                 {/* <td>{item.APTS_Agreement_Group_c?.Name}</td> */}
-                <td>{item.Line_Type_c}</td>
-                <td>{item.APTS_Discount_Type_c}</td>
-                <td>{item.APTS_Match_Products_By_c}</td>
+                <td className={
+    wrapColumns["LineType"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.Line_Type_c}</td>
+                <td className={
+    wrapColumns["DiscountType"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Discount_Type_c}</td>
+                <td  className={
+    wrapColumns["MatchProductsBy"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Match_Products_By_c}</td>
 
-                <td>{item.APTS_BillingPlan_c}</td>
-                <td>{item.APTS_MG3_Service_c}</td>
-                <td>{item.APTS_Discount_Tier_1_c}</td>
-                <td>{item.APTS_Discount_Tier_2_c}</td>
-                <td>{item.APTS_Discount_Tier_3_c}</td>
-                <td>{item.APTS_Discount_Tier_4_c}</td>
-                 <td>{item.APTS_Discount_Tier_5_c}</td>
-                    <td>{item.APTS_Scaled_Discount_Percent_Tier_1_c}</td>
-                    <td>{item.APTS_Scaled_Discount_Percent_Tier_2_c}</td>
-                    <td>{item.APTS_Scaled_Discount_Percent_Tier_3_c}</td>
-                    <td>{item.APTS_Scaled_Discount_Percent_Tier_4_c}</td>
-                    <td>{item.APTS_Scaled_Discount_Percent_Tier_5_c}</td>
-                    <td>{item.APTS_Volume_Threshold_1_c}</td>
-                    <td>{item.APTS_Volume_Threshold_2_c}</td>
-                    <td>{item.APTS_Volume_Threshold_3_c}</td>
-                    <td>{item.APTS_Volume_Threshold_4_c}</td>
-                    <td>{item.APTS_Volume_Threshold_5_c}</td>
-                    <td>{item.APTS_NPO_Tier_1_c?.Value}</td>
-                     <td>{item.APTS_NPO_Tier_2_c?.Value}</td>
-                      <td>{item.APTS_NPO_Tier_3_c?.Value}</td>
-                       <td>{item.APTS_NPO_Tier_4_c?.Value}</td>
-                        <td>{item.APTS_NPO_Tier_5_c?.Value}</td>
-                         <td>{item.APTS_NPO_Tier_6_c?.Value}</td>
-                          <td>{item.APTS_NPO_Tier_7_c?.Value}</td>
-                    <td>{item.APTS_Scaled_Discount_Amount_Tier_1_c?.Value}</td>
-                    <td>{item.APTS_Scaled_Discount_Amount_Tier_2_c?.Value}</td>
-                    <td>{item.APTS_APTS_Scaled_Discount_Amount_Tier_3_c?.Value}</td>
-                    <td>{item.APTS_Scaled_Discount_Amount_Tier_4_c?.Value}</td>
-                    <td>{item.APTS_Scaled_Discount_Amount_Tier_5_c?.Value}</td>
+                <td className={
+    wrapColumns["BillingPlan"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_BillingPlan_c}</td>
+                <td className={
+    wrapColumns["MG3"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_MG3_Service_c}</td>
+                <td className={
+    wrapColumns["DiscountTier1"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Discount_Tier_1_c}</td>
+                <td className={
+    wrapColumns["DiscountTier2"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Discount_Tier_2_c}</td>
+                <td className={
+    wrapColumns["DiscountTier3"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Discount_Tier_3_c}</td>
+                <td className={
+    wrapColumns["DiscountTier4"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Discount_Tier_4_c}</td>
+                 <td className={
+    wrapColumns["DiscountTier5"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Discount_Tier_5_c}</td>
+                    <td className={
+    wrapColumns["ScaledDiscountPercentTier1"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Scaled_Discount_Percent_Tier_1_c}</td>
+                    <td className={
+    wrapColumns["ScaledDiscountPercentTier2"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Scaled_Discount_Percent_Tier_2_c}</td>
+                    <td className={
+    wrapColumns["ScaledDiscountPercentTier3"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Scaled_Discount_Percent_Tier_3_c}</td>
+                    <td className={
+    wrapColumns["ScaledDiscountPercentTier4"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Scaled_Discount_Percent_Tier_4_c}</td>
+                    <td className={
+    wrapColumns["ScaledDiscountPercentTier5"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Scaled_Discount_Percent_Tier_5_c}</td>
+                    <td className={
+    wrapColumns["VolumeThreshold1"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Volume_Threshold_1_c}</td>
+                    <td className={
+    wrapColumns["VolumeThreshold2"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Volume_Threshold_2_c}</td>
+                    <td className={
+    wrapColumns["VolumeThreshold3"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Volume_Threshold_3_c}</td>
+                    <td className={
+    wrapColumns["VolumeThreshold4"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Volume_Threshold_4_c}</td>
+                    <td className={
+    wrapColumns["VolumeThreshold5"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Volume_Threshold_5_c}</td>
+                    <td className={
+    wrapColumns["NPOTier1"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_NPO_Tier_1_c?.Value}</td>
+                     <td className={
+    wrapColumns["NPOTier2"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_NPO_Tier_2_c?.Value}</td>
+                      <td className={
+    wrapColumns["NPOTier3"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_NPO_Tier_3_c?.Value}</td>
+                       <td className={
+    wrapColumns["NPOTier4"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_NPO_Tier_4_c?.Value}</td>
+                        <td className={
+    wrapColumns["NPOTier5"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_NPO_Tier_5_c?.Value}</td>
+                         <td className={
+    wrapColumns["NPOTier6"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_NPO_Tier_6_c?.Value}</td>
+                          <td className={
+    wrapColumns["NPOTier7"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_NPO_Tier_7_c?.Value}</td>
+                    <td className={
+    wrapColumns["ScaledDiscountAmountTier1"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Scaled_Discount_Amount_Tier_1_c?.Value}</td>
+                    <td className={
+    wrapColumns["ScaledDiscountAmountTier2"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Scaled_Discount_Amount_Tier_2_c?.Value}</td>
+                    <td className={
+    wrapColumns["ScaledDiscountAmountTier3"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Scaled_Discount_Amount_Tier_3_c?.Value}</td>
+                    <td className={
+    wrapColumns["ScaledDiscountAmountTier4"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Scaled_Discount_Amount_Tier_4_c?.Value}</td>
+                    <td className={
+    wrapColumns["ScaledDiscountAmountTier5"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Scaled_Discount_Amount_Tier_5_c?.Value}</td>
 
 
               </tr>

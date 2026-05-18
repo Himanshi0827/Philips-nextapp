@@ -24,8 +24,9 @@ if (!id) {
 }
 
 const [agreementName,setAgreementName]=useState("");
-const agreementHeader = location.state?.agreementHeader || null;
-
+// const agreementHeader = location.state?.agreementHeader || null;
+const searchParams = useSearchParams();
+const agreementHeader = searchParams.get("agreementHeader");
   const [agreements, setAgreements] = useState([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState(null);

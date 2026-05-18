@@ -24,7 +24,7 @@ function TopBar({ title, onSave, agreementHeader, mode,
           <span className="logo">PHILIPS</span>
        
             <span className="agreement-title">
-              Agreement: {agreementHeader}
+            |  Agreement: {agreementHeader}
             </span>
           
         </div>

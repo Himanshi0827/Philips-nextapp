@@ -1221,3 +1221,197 @@ input[type=number] {
   text-decoration: underline;
   color: #014486;
 }
+
+
+
+/* =========================
+   TABLE HEADER
+========================= */
+
+.resizable-header {
+  position: relative;
+  background: #f4f6f9;
+  vertical-align: top;
+}
+
+/* header layout */
+.header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* dropdown */
+.header-select {
+  width: 100%;
+  font-size: 11px;
+  padding: 2px;
+}
+
+/* resize line */
+.resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+
+  width: 6px;
+  height: 100%;
+
+  cursor: col-resize;
+  user-select: none;
+}
+
+.resize-handle:hover {
+  background: #0070d2;
+}
+
+/* =========================
+   CLIP MODE
+========================= */
+
+.clip-cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* =========================
+   WRAP MODE
+========================= */
+
+.wrap-cell {
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.4;
+  height: auto;
+}
+.clone-grid-table {
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.clone-grid-table th,
+.clone-grid-table td {
+  border: 1px solid #d8dde6;
+  padding: 6px 10px;
+  font-size: 13px;
+  vertical-align: top;
+}
+.cell-clip {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cell-wrap {
+  white-space: normal;
+  overflow: visible;
+  word-break: break-word;
+}
+.resizable-header {
+  position: relative;
+  background: #f3f3f3;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.header-menu {
+  position: relative;
+}
+
+.header-menu-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px;
+}
+
+.header-dropdown {
+  position: absolute;
+  top: 20px;
+  right: 0;
+  background: white;
+  border: 1px solid #d8dde6;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  z-index: 1000;
+  min-width: 120px;
+}
+
+.dropdown-item {
+  padding: 8px 10px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.dropdown-item:hover {
+  background: #f4f6f9;
+}
+.resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 5px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+}
+
+.clone-grid-table {
+  width: max-content;
+  border-collapse: collapse;
+  table-layout: fixed; /* IMPORTANT */
+}
+
+.clone-grid-table th,
+.clone-grid-table td {
+  border: 1px solid #dcdcdc;
+  padding: 6px 8px;
+  max-width: 80px;
+  overflow: hidden;
+}
+.clip-cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wrap-cell {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.resizable-header {
+  position: relative;
+  overflow: visible !important; /* IMPORTANT */
+}
+.header-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 9999;
+  background: white;
+  border: 1px solid #dcdcdc;
+  min-width: 120px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.clip-cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wrap-cell {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: unset;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}

@@ -402,6 +402,7 @@ const handleConfirmYes = async () => {
         APTS_Order_Intake_Volume_Tier_c: r.tier,
         APTS_Un_designate_c: unDesignate,
         APTS_Customer_MP1_Id_c: member.MP1_Customer_id_1_c,
+          APTS_Golden_Record_Key_c: member?.Golden_Record_Key_c || null,
         APTS_Status_c: "Not Processed"
       };
 
