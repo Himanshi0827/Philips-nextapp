@@ -930,3 +930,14 @@
 .producttable-container::-webkit-scrollbar-track {
   background: #f1f1f1;
 }
+
+.clone-link {
+  color: #0176d3;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.clone-link:hover {
+  text-decoration: underline;
+  color: #014486;
+}
