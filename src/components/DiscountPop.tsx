@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import "../CSS/dashboard.css";
+import "../CSS/FormLayout.css";
 import { GetPicklist } from "../api/GetPicklist";
 
 function DiscountPopup({product,mode,onSave,onClose,data,onChange,prev,index,onChangeProduct}) {
