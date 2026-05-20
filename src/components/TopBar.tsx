@@ -74,7 +74,8 @@ function TopBar({ title, onSave, agreementHeader, mode,
     )}
 
     {/*  FINAL BUTTON AVAILABLE AFTER DISCOUNT STEP */}
-    {isAfterDiscount && (
+ {/* //   {isAfterDiscount && ( */}
+        {(isAfterDiscount || (activeTab === "Product Selection" && isProductCompleted)) && (
       <button
         className="btn success"
         disabled={!isBillingCompleted}
