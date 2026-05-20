@@ -695,3 +695,83 @@ console.log("getAgreementDetailsByIds response", response);
 
   return result.Data || [];
 }
+
+
+export async function queryDesignatedContractsByMember(memberId) {
+  const token = getAccessToken();
+  const response = await fetch(
+    "https://preview-rls09.congacloud.com/api/data/v1/query/APTS_Account_Contract_c",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        ObjectName: "APTS_Account_Contract_c",
+        Criteria: `APTS_Designated_Flag_c = true AND APTS_Member_c = '${memberId}'`,
+        Select: ["Id", "APTS_End_Date_c"]
+      })
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch designated account contracts");
+  }
+
+  const result = await response.json();
+  return result.Data || [];
+}
+
+export async function updateAccountContract(id, payload) {
+  try {
+    const CONTRACT_URL =
+      "https://preview-rls09.congacloud.com/api/data/v1/objects/APTS_Account_Contract_c";
+    const accessToken = getAccessToken();
+    const response = await fetch(`${CONTRACT_URL}/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw errorData;
+    }
+
+    return response.json();
+  } catch (err) {
+    console.error(err.message);
+    throw err;
+  }
+}
+
+export async function updateAccount(id, payload) {
+  try {
+    const CONTRACT_URL =
+      "https://preview-rls09.congacloud.com/api/data/v1/objects/Account";
+    const accessToken = getAccessToken();
+    const response = await fetch(`${CONTRACT_URL}/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw errorData;
+    }
+
+    return response.json();
+  } catch (err) {
+    console.error(err.message);
+    throw err;
+  }
+}
