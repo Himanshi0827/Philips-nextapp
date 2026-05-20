@@ -127,3 +127,33 @@ textarea {
   gap: 12px;
   margin-top: 30px;
 }
+
+
+  /* Each field */
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 220px;
+  }
+  
+  /* Labels */
+  .filter-group label {
+    font-size: 13px;
+    margin-bottom: 5px;
+    color: #444;
+    font-weight: bold;
+  }
+  
+  /* Inputs & Selects */
+  .filter-group select,
+  .filter-group input {
+    height: 32px;
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+
