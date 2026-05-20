@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 
 import "../CSS/Designation.css"
 import MemberSearch from "../components/MemberSearch";
-import { getAccountsByIds,getAgreementsByIds,getAgreementsIds,getMembershipAgreements ,createGPODesignateChange,getRetryRecords, UpdateGPODesignateChange,getUserIdFromToken,fetchRecords,getAgreementDetailsByIds} from "../api/member"; 
+import { getAccountsByIds,getAgreementsByIds,getAgreementsIds,getMembershipAgreements ,createGPODesignateChange,getRetryRecords, UpdateGPODesignateChange,getUserIdFromToken,fetchRecords,getAgreementDetailsByIds,getAccountById,queryDesignatedContractsByMember,updateAccountContract,updateAccount} from "../api/member"; 
 import { queryGetAgreementDetails } from "../api/queryAgreementLineItemsByAgreement"; 
 
 export default function Designation() {
