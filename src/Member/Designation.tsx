@@ -66,7 +66,16 @@ console.log("retry data", data);
   }
 };
 useEffect(() => {
-   loadData();
+ //  loadData();
+   (async () => {
+    try {
+      const trying = await queryGetAgreementDetails(agreementId);
+      console.log(trying);
+      setAcc(trying);
+    } catch (err) {
+      console.error(err);
+    }
+  })();
    console.log("account",Acc);
    if (Acc && Acc.length > 0) {
     const accRecord = Acc[0]?.Account;
@@ -169,36 +178,23 @@ const isDesignated = acc.Id === designatedId;
     isDesignated
   };
 });
-setOptions(mapped);
 
- setShowCheckBox(false);
-const designatedOption = mapped.find(o => o.isDesignated);
+    setOptions(mapped);
+    setShowCheckBox(false);
+    setUnDesignate(false);
 
-if (designatedOption) {
-  console.log(
-    "Found designated option",
-    designatedOption
-  );
-  setDesignated(designatedOption.value);   
-  setCurrentDesignated(designatedOption.value); // optional but useful
-  setShowCheckBox(true); 
-} else {
+    const designatedOption = mapped.find(o => o.isDesignated);
+    if (designatedOption) {
+      console.log("Found designated option", designatedOption);
+      setDesignated(designatedOption.value);
+      setCurrentDesignated(designatedOption.value);
+      setShowCheckBox(true);
+      setUnDesignate(true);
+    }
+  };
 
-  console.log("No designated option found");
-
-  setDesignated(null);
-  setShowCheckBox(false);
-}
-  // setOptions(mapped);
-
-  // const designated = mapped.find(o => o.isDesignated);
-  // if (designated) {
-  //   setDesignated(designated.value);
-  //   setShowCheckBox(true);
-  // }
-};
   load();
-}, [member],[Acc]);
+}, [member],[Acc, agreementId]);
    const loadData = async () => {
       try {       
 const trying = await queryGetAgreementDetails(agreementId);
@@ -391,6 +387,44 @@ console.log("designated for contract", c.Id, designated);
     return 0;
   }
 };
+  
+const handleGPOUndesignate = async (memberId, designationChangeId) => {
+  try {
+    const contracts = await queryDesignatedContractsByMember(memberId);
+    console.log("Designated contracts for member", memberId, contracts);
+    const today = new Date();
+    today.setDate(today.getDate() - 1);
+    const formattedDate = today.toISOString().split("T")[0];
+
+    if (contracts.length > 0) {
+      console.log("Updating end date for designated contracts to", formattedDate);
+      await Promise.all(
+        contracts.map(contract =>
+          updateAccountContract(contract.Id, {
+            APTS_End_Date_c: formattedDate
+          })
+        )
+      );
+    }
+console.log("All designated contracts updated with end date", formattedDate);
+    const account = await getAccountById(memberId);
+    console.log("Account details for member", memberId, account);
+    if (account[0]?.Designated_GPO_c) {
+      console.log("Removing designated GPO from account", memberId);
+      await updateAccount(memberId, { Designated_GPO_c: null });
+    }
+
+    if (designationChangeId) {
+      await UpdateGPODesignateChange(designationChangeId, {
+        APTS_Status_c: "Processed"
+      });
+    }
+  } catch (err) {
+    console.error("handleGPOUndesignate error", err);
+    throw err;
+  }
+};
+
 const handleConfirmYes = async () => {
   try {
     for (let r of rows) {
@@ -406,10 +440,19 @@ const handleConfirmYes = async () => {
         APTS_Status_c: "Not Processed"
       };
 
-      await createGPODesignateChange(payload);
+       const result = await createGPODesignateChange(payload);
+    console.log("designation change result", result);
+
+    if (unDesignate) {
+      const createdId = result?.Data
+
+      await handleGPOUndesignate(r.memberId, createdId);
+      toast.info("Un-Designation will be processed along with Designation.");
     }
 
     toast.success("GPO Designation Change Created!");
+
+    }
 
     //  Clear everything
     clearForm();
