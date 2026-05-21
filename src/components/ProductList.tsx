@@ -109,7 +109,7 @@ function ProductList({
                   </>
                 )}
 
-                <td>{p.DiscountType || "None"}</td>
+                <td>{p.DiscountType}</td>
 
                 {[0, 1, 2, 3, 4].map((i) => (
                   <td key={`tier-${i}`}>
