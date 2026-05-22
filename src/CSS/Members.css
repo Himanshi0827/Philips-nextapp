@@ -618,3 +618,23 @@ tr:hover {
 .expired-row:hover td {
   background-color: #ffef99 !important;
 }
+.modal-footer {
+  padding: 12px 16px;
+ 
+  border-top: 1px solid #ddd;
+  background: #f8f9fa;
+ 
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+ .modal-body {
+  flex: 1;
+  padding: 10px;
+  overflow: auto; /* Prevent double scroll */
+}
+ .modal-body {
+  padding: 20px;
+  max-height: 500px;
+  overflow-y: auto;
+}
