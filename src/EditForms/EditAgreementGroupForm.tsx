@@ -113,8 +113,7 @@ function EditAgreementGroupForm({ data,onChange,onComplete }) {
  
             {/* review */}
             <td>
-              {
-                "Annually"}
+             {data.Timeperiod_for_member_tier_change_review_c}
             </td>
             <td>{data?.Name}</td>
           </tr>
