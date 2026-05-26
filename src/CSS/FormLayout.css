@@ -1451,3 +1451,9 @@ input[type=number] {
   background: white;
   cursor: pointer;
 }
+.innertable-wrapper
+{
+  padding: 0 !important;
+  margin: 0;
+  border: none;
+}
