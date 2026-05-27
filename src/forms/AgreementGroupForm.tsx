@@ -176,21 +176,21 @@ function AgreementGroupForm({ data,onChange,onComplete }) {
  
   return (
     <div className="form-card">
-      <table className="form-table">
+        <table className="form-table">
         <tbody>
- 
+
           <tr>
             <td className="label">AgreementLineItem Name:</td>
             <td>
-             <div className="field">
-            <input name="AgreementLineItemName"
-                      onChange={handleChange}
-                      value={data.AgreementLineItemName}
-                      type="text" />
-              </div>
+              <div className="field">
+              <input name="AgreementLineItemName" 
+                      onChange={handleChange} 
+                      value={data.AgreementLineItemName} 
+                      type="text" /></div>
             </td>
           </tr>
           <tr>
+
             <td colSpan={2} className="innertable-wrapper">
           <div>
             <div className="proposal-table-container">
@@ -204,7 +204,7 @@ function AgreementGroupForm({ data,onChange,onComplete }) {
         </tr>
       </thead>
  
-    
+  
       <tbody>
   {agList.map((agreement) => {
     const isSelected =
@@ -277,7 +277,36 @@ function AgreementGroupForm({ data,onChange,onComplete }) {
     );
   })}
 </tbody>
+    </table>
+  </div>
+</div>
+</td>
+  {/* <td className="label">Agreement Group</td>
+  <td>
+    <LookupTypeAhead
+      field={{
+        DisplayName: "Agreement Group",
+        LookupObjectName: "APTS_Agreement_Groups_c",
+        AgreementId:agreementId
+      }}
+      value={data.agreementGroup}   // { Id, Name }
+      onChange={(record) =>
+        
+        onChange({
+          agreementGroup: record,        // store full object
+          agreementGroupId: record?.Id   // store Id separately if needed
+        })
+      }
+      searchFn={searchLookupRecords}
+    />
+  </td> */}
+</tr>
+
+         
+
+        </tbody>
       </table>
+
  
       {error && (
         <div style={{ color: "red", marginTop: "10px" }}>
