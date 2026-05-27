@@ -96,12 +96,20 @@ function EditAgreementGroupForm({ data,onChange,onComplete }) {
             </td>
  
             {/* icon/button */}
-            <td style={{'alignItems':'center'}}>
+            {/* <td style={{'alignItems':'center'}}>
               <button>
                 <b>⊝</b>
               </button>
-            </td>
- 
+            </td> */}
+  <td>
+          <div className="tooltip-wrapper">
+            <button className="group-btn">−</button>
+
+            <span className="tooltip-text">
+              No commercial condition present
+            </span>
+          </div>
+        </td>
             {/* group */}
             <td><a
       href={`https://preview-rls09.congacloud.com/admin/entity/APTS_Agreement_Groups_c/detail/${data.APTS_Agreement_Group_c?.Id}/`}
