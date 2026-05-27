@@ -103,25 +103,48 @@ import { getAgreementGroupById } from "../api/api";
  
 function AgreementGroupForm({ data,onChange,onComplete }) {
   const [agList,setAgList]=useState<any>([]);
-  useEffect(()=>
-  {
-    const fetch_ag_by_id=async ()=>
-    {
-      try
-      {
-        const agreementId=sessionStorage.getItem("agreementId");
-        const res=await getAgreementGroupById(agreementId);
-        setAgList(res);
-        console.log("Trial from form",res);
+  // useEffect(()=>
+  // {
+  //   const fetch_ag_by_id=async ()=>
+  //   {
+  //     try
+  //     {
+  //       const agreementId=sessionStorage.getItem("agreementId");
+  //       const res=await getAgreementGroupById(agreementId);
+  //       setAgList(res);
+  //       console.log("Trial from form",res);
+  //     }
+  //     catch(error)
+  //     {
+  //       console.error(error);
+  //     }
+  //   }
+  //   fetch_ag_by_id();
+  // },[])
+ useEffect(() => {
+  const fetch_ag_by_id = async () => {
+    try {
+      const agreementId = sessionStorage.getItem("agreementId");
+      const res = await getAgreementGroupById(agreementId);
+
+      setAgList(res);
+
+      console.log("Trial from form", res);
+
+      // auto select first row
+      if (res && res.length > 0 && !data?.agreementGroupId) {
+        onChange({
+          agreementGroup: res[0],
+          agreementGroupId: res[0]?.Id
+        });
       }
-      catch(error)
-      {
-        console.error(error);
-      }
+    } catch (error) {
+      console.error(error);
     }
-    fetch_ag_by_id();
-  },[])
- 
+  };
+
+  fetch_ag_by_id();
+}, []);
   const [form, setForm] = useState({
     agreementGroup: "",
     AgreementLineItemName:""
@@ -181,84 +204,79 @@ function AgreementGroupForm({ data,onChange,onComplete }) {
         </tr>
       </thead>
  
+    
       <tbody>
-        {agList.map((agreement) => (
-          <tr key={agreement.Id}>
-            {/* radio */}
-            <td>
-              <input
-                type="radio"
-                name="agreementGroup"
-                checked={
-                  data?.agreementGroupId ===
-                  agreement?.Id
-                }
-                onChange={() =>
-                {
-                  onChange({
-                    agreementGroup: agreement,        // store full object
-                    agreementGroupId:   agreement?.Id   // store Id separately if needed
-                  })
-                }
-                }
-              />
-            </td>
- 
-            {/* icon/button */}
-            <td>
-              <button
-                className="group-btn" >
-                ●
-              </button>
-            </td>
- 
-            {/* group */}
-            <td><a
-      href={`https://preview-rls09.congacloud.com/admin/entity/APTS_Agreement_Groups_c/detail/${agreement?.Id}/`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="clone-link"
-    > {agreement?.Name}
-    </a></td>
- 
-            {/* review */}
-            <td>
-              {agreement
-                .APTS_Time_period_for_member_tier_change_c ||
-                "Annually"}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-</div>
-</td>
-  {/* <td className="label">Agreement Group</td>
-  <td>
-    <LookupTypeAhead
-      field={{
-        DisplayName: "Agreement Group",
-        LookupObjectName: "APTS_Agreement_Groups_c",
-        AgreementId:agreementId
-      }}
-      value={data.agreementGroup}   // { Id, Name }
-      onChange={(record) =>
-       
-        onChange({
-          agreementGroup: record,        // store full object
-          agreementGroupId: record?.Id   // store Id separately if needed
-        })
-      }
-      searchFn={searchLookupRecords}
-    />
-  </td> */}
- 
-</tr>
- 
-         
- 
-        </tbody>
+  {agList.map((agreement) => {
+    const isSelected =
+      data?.agreementGroupId === agreement?.Id;
+
+    return (
+      // <tr
+      //   key={agreement.Id}
+      //   className={`table-row ${
+      //     isSelected ? "selected-row" : ""
+      //   }`}
+      // >
+      <tr
+  key={agreement.Id}
+  className={`table-row ${
+    isSelected ? "selected-row" : ""
+  }`}
+  onClick={() => {
+    onChange({
+      agreementGroup: agreement,
+      agreementGroupId: agreement?.Id,
+    });
+  }}
+>
+        {/* radio */}
+        <td>
+          <input
+            type="radio"
+            name="agreementGroup"
+            checked={isSelected}
+            onChange={() => {
+              onChange({
+                agreementGroup: agreement,
+                agreementGroupId: agreement?.Id,
+              });
+            }}
+          />
+        </td>
+
+        {/* commercial condition */}
+        <td>
+          <div className="tooltip-wrapper">
+            <button className="group-btn">−</button>
+
+            <span className="tooltip-text">
+              No commercial condition present
+            </span>
+          </div>
+        </td>
+
+        {/* group name */}
+        <td>
+          <a
+            href={`https://preview-rls09.congacloud.com/admin/entity/APTS_Agreement_Groups_c/detail/${agreement?.Id}/`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="clone-link"
+          >
+            {agreement?.Name}
+          </a>
+        </td>
+
+        {/* review */}
+        <td>
+          {agreement
+            .APTS_Time_period_for_member_tier_change_c ||
+            "Annually"}
+        </td>
+      </tr>
+    );
+  })}
+</tbody>
       </table>
  
       {error && (
