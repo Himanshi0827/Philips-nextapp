@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 
 import "../CSS/Designation.css"
 import MemberSearch from "../components/MemberSearch";
-import { getAccountsByIds,getAgreementsByIds,getAgreementsIds,getMembershipAgreements ,createGPODesignateChange,getRetryRecords, UpdateGPODesignateChange,getUserIdFromToken,fetchRecords,getAgreementDetailsByIds,getAccountById,queryDesignatedContractsByMember,updateAccountContract,updateAccount} from "../api/member"; 
+import { getAccountsByIds,getAgreementsByIds,getAgreementsIds,getMembershipAgreements ,createGPODesignateChange,getRetryRecords, UpdateGPODesignateChange,getUserIdFromToken,fetchRecords,getAgreementDetailsByIds,getAccountById,queryDesignatedContractsByMember,updateAccountContract,updateAccount, createMember,getActiveGPOAgreements, getCFAMembersByAgreementIds,getAgreementsByIdsDesignation} from "../api/member"; 
 import { queryGetAgreementDetails } from "../api/queryAgreementLineItemsByAgreement"; 
 
 export default function Designation() {
@@ -425,6 +425,243 @@ console.log("All designated contracts updated with end date", formattedDate);
   }
 };
 
+const createNewMemberships = async (
+  memberId,
+  gpoId,
+  effectiveDate,
+  tier
+) => {
+console.log("Creating new memberships for member", memberId, "GPO", gpoId, "effectiveDate", effectiveDate, "tier", tier);
+  const agreements =
+    await getActiveGPOAgreements(gpoId);
+    const existingContracts =
+  await getMembershipAgreements(memberId);
+
+const existingAgreementIds =
+  existingContracts.map(
+    c => c.APTS_Related_Agreement_c
+  );
+
+const agreementsToCreate =
+  agreements.filter(
+    agr =>
+      !existingAgreementIds.includes(
+        agr.Id
+      )
+  );
+
+console.log(
+  "agreementsToCreate",
+  agreementsToCreate
+);
+console.log("Active GPO agreements for GPO", gpoId, agreements);
+  if (!agreements.length) {
+    throw new Error(
+      "No active agreements found for GPO"
+    );
+  }
+
+ const createdMemberships = await Promise.all(
+    agreementsToCreate.map(agr =>
+      createMember({
+         Name: memberId || "New Member",
+        APTS_Member_c: memberId,
+
+        APTS_Related_Agreement_c: agr.Id,
+
+        APTS_Start_Date_c: effectiveDate,
+
+        APTS_End_Date_c:
+          agr.ContractEndDate,
+
+        APTS_Volume_Tier_c: tier,
+
+        APTS_Sync_to_SAP_c: "Yes",
+
+        APTS_Is_Record_Updated_c: true
+      })
+    )
+  );
+  console.log("Created memberships", createdMemberships);
+};
+const deactivateOldMemberships = async (
+  memberId,
+  effectiveDate
+) => {
+console.log("Deactivating old memberships for member", memberId, "effectiveDate", effectiveDate);
+  const contracts =
+    await getMembershipAgreements(memberId);
+console.log("Contracts to deactivate", contracts);
+  if (!contracts?.length) return;
+
+  const endDate = new Date(effectiveDate);
+  endDate.setDate(endDate.getDate() - 1);
+
+  const formatted =
+    endDate.toISOString().split("T")[0];
+
+  const deactivatedContracts = await Promise.all(
+    contracts.map(contract =>
+      updateAccountContract(contract.Id, {
+        APTS_End_Date_c: formatted,
+        APTS_Is_Record_Updated_c: true,
+        APTS_Sync_to_SAP_c: "Yes"
+      })
+    )
+  );
+  console.log("Deactivated contracts", deactivatedContracts);
+};
+const deactivateMemberships = async (
+  memberIds,
+  effectiveDate,
+    newGpoId
+) => {
+
+  for (const memberId of memberIds) {
+
+    const contracts =
+      await getMembershipAgreements(memberId);
+
+    if (!contracts?.length) continue;
+
+    const agreementIds =
+      contracts
+        .map(
+          c => c.APTS_Related_Agreement_c
+        )
+        .filter(Boolean);
+
+    const agreements =
+      await getAgreementsIds(
+        agreementIds
+      );
+
+    const agreementMap = {};
+
+    agreements.forEach(a => {
+      agreementMap[a.Id] = a;
+    });
+
+    const validContracts =
+      contracts.filter(c => {
+
+        const agr =
+          agreementMap[
+            c.APTS_Related_Agreement_c
+          ];
+
+        if (!agr) return false;
+const agrAccount =
+  agr.Account?.Id || agr.Account;
+
+return (
+  agr.Status === "Activated" &&
+  agr.StatusCategory ===
+    "In Effect" &&
+  new Date(
+    agr.ContractEndDate
+  ) > new Date() &&
+  agrAccount !== newGpoId
+);
+        // return (
+        //   agr.Status === "Activated" &&
+        //   agr.StatusCategory ===
+        //     "In Effect" &&
+        //   new Date(
+        //     agr.ContractEndDate
+        //   ) > new Date()
+        // );
+      });
+
+    const endDate =
+      new Date(effectiveDate);
+
+    endDate.setDate(
+      endDate.getDate() - 1
+    );
+
+    const formatted =
+      endDate
+        .toISOString()
+        .split("T")[0];
+
+    await Promise.all(
+      validContracts.map(contract =>
+        updateAccountContract(
+          contract.Id,
+          {
+            APTS_End_Date_c:
+              formatted,
+
+            APTS_Is_Record_Updated_c:
+              true,
+
+            APTS_Sync_to_SAP_c:
+              "Yes"
+          }
+        )
+      )
+    );
+  }
+};
+const getMembersToMove = ({
+  isCFACustomer,
+  isCFAMember,
+  selectedMemberId,
+  cfaMembers
+}) => {
+
+  if (isCFACustomer) {
+
+    return [
+      ...new Set(
+        cfaMembers.map(
+          m => m.APTS_Member_c
+        )
+      )
+    ];
+  }
+
+  if (isCFAMember) {
+
+    return [selectedMemberId];
+  }
+
+  return [selectedMemberId];
+};
+const determineCFARole = (
+  agreements,
+  memberId
+) => {
+console.log("Determining CFA role for member", memberId, "with agreements", agreements);
+  let isCFACustomer = false;
+  let isCFAMember = false;
+
+  agreements.forEach(agr => {
+
+    const agrAccount =
+      agr.Account?.Id || agr.Account;
+
+    if (
+      agr.RecordType === "Customer_Framework"
+    ) {
+
+      if (agrAccount === memberId) {
+
+        isCFACustomer = true;
+
+      } else {
+
+        isCFAMember = true;
+      }
+    }
+  });
+
+  return {
+    isCFACustomer,
+    isCFAMember
+  };
+};
 const handleConfirmYes = async () => {
   try {
     for (let r of rows) {
@@ -448,7 +685,175 @@ const handleConfirmYes = async () => {
 
       await handleGPOUndesignate(r.memberId, createdId);
       toast.info("Un-Designation will be processed along with Designation.");
+    } else {
+      // =====================================
+// STEP 1 - GET MEMBER CONTRACTS
+// =====================================
+
+const memberContracts =
+  await getMembershipAgreements(
+    r.memberId
+  );
+if (!memberContracts || memberContracts.length === 0) {
+  throw new Error("No membership contracts found for member");
+}
+console.log(
+  "memberContracts",
+  memberContracts
+);
+
+// =====================================
+// STEP 2 - GET AGREEMENT IDS and the gpo of the account in gpo membership contracts
+// =====================================
+
+const designate = await getAccountById(r.memberId);
+
+console.log("account details for member", r.memberId, designate);
+const designatedIds = designate[0]?.Designated_GPO_c?.Id;
+console.log("current designated GPO for member", r.memberId, designatedIds);
+const agreementIds =
+  memberContracts
+    .map(
+      c => c.APTS_Related_Agreement_c
+    )
+    .filter(Boolean);
+console.log( "agreementIds", agreementIds);
+// =====================================
+// STEP 3 - GET AGREEMENTS
+// =====================================
+
+const agreements =
+  await getAgreementsByIdsDesignation(
+    agreementIds,
+   designatedIds,
+    r.memberId,
+    r.gpoId
+  );
+console.log("agreements without designated filter", agreements);
+
+
+// =====================================
+// STEP 4 - DETERMINE CFA ROLE
+// =====================================
+
+const {
+  isCFACustomer,
+  isCFAMember
+} = determineCFARole(
+  agreements,
+  r.memberId
+);
+
+console.log(
+  "isCFACustomer",
+  isCFACustomer
+);
+
+console.log(
+  "isCFAMember",
+  isCFAMember
+);
+
+// =====================================
+// STEP 5 - GET CFA MEMBERS
+// =====================================
+
+let cfaMembers = [];
+
+if (
+  isCFACustomer ||
+  isCFAMember
+) {
+
+  cfaMembers =
+    await getCFAMembersByAgreementIds(
+      agreementIds
+    );
+
+  console.log(
+    "cfaMembers",
+    cfaMembers
+  );
+}
+
+// =====================================
+// STEP 6 - GET MEMBERS TO MOVE
+// =====================================
+
+const membersToMove =
+  getMembersToMove({
+
+    isCFACustomer,
+
+    isCFAMember,
+
+    selectedMemberId:
+      r.memberId,
+
+    cfaMembers
+  });
+
+console.log(
+  "membersToMove",
+  membersToMove
+);
+
+// =====================================
+// STEP 7 - DEACTIVATE OLD MEMBERSHIPS
+// =====================================
+
+const deactivatedMemberships = await deactivateMemberships(
+  membersToMove,
+  r.effectiveDate,
+  r.gpoId
+);
+console.log("Old memberships deactivated for members", deactivatedMemberships);
+// =====================================
+// STEP 8 - CREATE NEW MEMBERSHIPS
+// =====================================
+
+for (const memberId of membersToMove) {
+
+ const createdMembership = await createNewMemberships(
+    memberId,
+    r.gpoId,
+    r.effectiveDate,
+    r.tier
+  );
+  console.log("New memberships created for member", memberId, createdMembership);
+}
+
+// =====================================
+// STEP 9 - UPDATE ACCOUNT GPO
+// =====================================
+
+for (const memberId of membersToMove) {
+
+  const updatedAccount = await updateAccount(
+    memberId,
+    {
+      Designated_GPO_c: {
+        Id: r.gpoId,
+        Name: r.gpoName
+      }
     }
+  );
+  console.log("Account updated with new designated GPO for member", memberId, updatedAccount);
+}
+
+// =====================================
+// STEP 10 - MARK PROCESSED
+// =====================================
+
+const updatedDesignation = await UpdateGPODesignateChange(
+  createdId,
+  {
+    APTS_Status_c: "Processed"
+  }
+);
+console.log("Designation change updated", updatedDesignation);
+    }
+   
 
     toast.success("GPO Designation Change Created!");
 
