@@ -679,7 +679,7 @@ const handleConfirmYes = async () => {
 
        const result = await createGPODesignateChange(payload);
     console.log("designation change result", result);
-
+ const createdId = result?.Data
     if (unDesignate) {
       const createdId = result?.Data
 
