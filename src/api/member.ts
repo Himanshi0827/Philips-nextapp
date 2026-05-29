@@ -241,6 +241,51 @@ export async function getAgreementsByIds(ids = []) {
   return result.Data || [];
 }
 
+
+export async function getAgreementsByIdsDesignation(ids = [],accountIds:string,memberId:string,gpoId:string) {
+  if (!ids.length) return [];
+
+  const token = getAccessToken();
+  const formattedIds = ids.map(id => `'${id}'`).join(",");
+
+
+  const response = await fetch(
+    "https://preview-rls09.congacloud.com/api/data/v1/query/Agreement",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        ObjectName: "Agreement",
+        Criteria: `
+          Id IN (${formattedIds})
+          AND Status = 'Activated'
+          AND StatusCategory = 'In Effect'
+          AND Apttus_Market_c = 'North America'
+          AND APTS_SalesArea_c = 'United States'
+          AND APTS_Country_Code_c = 'US'
+          AND ((RecordType = 'GPO_Framework'
+          AND Account.Id != '${gpoId}')
+          OR (APTS_Agreement_Sub_Type_c IN ('Cooperative Alliance Agreement', 'Long term strategic partnership', 'Product Specific Pricing', 'Master Purchase Agreement')
+      AND RecordType = 'Customer_Framework'
+      AND ((Account.Id= '${memberId}' 
+          AND APTS_Customer_Pricelist_Customer_c.Id = '${accountIds}')
+          OR (Account.Id!= '${memberId}' AND APTS_Customer_Pricelist_Customer_c.Id = '${accountIds}' )
+          OR Account.Id = '${accountIds}' )))
+        `,
+        Select: [
+          "*"
+        ]
+      })
+    }
+  );
+
+  const result = await response.json();
+  return result.Data || [];
+}
+
 export async function getAgreementsIds(ids = []) {
   if (!ids.length) return [];
 
@@ -650,13 +695,21 @@ export async function getAgreementDetailsByIds(ids = [],accountIds=[],memberId:s
 
   const token = getAccessToken();
 
-  const formattedIds = ids
-    .map(id => `'${id}'`)
-    .join(",");
+  // const formattedIds = ids
+  //   .map(id => `'${id}'`)
+  //   .join(",");
 
-  const formattedAccountIds = accountIds
-    .map(id => `'${id}'`)
-    .join(",");
+  // const formattedAccountIds = accountIds
+  //   .map(id => `'${id}'`)
+  //   .join(",");
+const formattedIds = ids.length 
+    ? ids.map(id => `'${id}'`).join(",") 
+    : "''";
+
+  // If accountIds list is empty, fallback to ''
+  const formattedAccountIds = accountIds.length 
+    ? accountIds.map(id => `'${id}'`).join(",") 
+    : "''";
 
   const response = await fetch(
     "https://preview-rls09.congacloud.com/api/data/v1/query/Agreement",
@@ -774,4 +827,84 @@ export async function updateAccount(id, payload) {
     console.error(err.message);
     throw err;
   }
+}
+
+
+
+export async function getActiveGPOAgreements(gpoId) {
+
+  const token = getAccessToken();
+
+  const response = await fetch(
+    "https://preview-rls09.congacloud.com/api/data/v1/query/Agreement",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        ObjectName: "Agreement",
+        Criteria: `
+          Account.Id = '${gpoId}'
+          AND Status = 'Activated'
+          AND StatusCategory = 'In Effect'
+          AND Apttus_Market_c = 'North America'
+          AND APTS_SalesArea_c = 'United States'
+          AND APTS_Country_Code_c = 'US'
+        `,
+        Select: ["*"]
+      })
+    }
+  );
+
+  const result = await response.json();
+
+  return result.Data || [];
+}
+
+
+export async function getCFAMembersByAgreementIds(
+  agreementIds = []
+) {
+
+  if (!agreementIds.length) return [];
+
+  const token = getAccessToken();
+
+  const formattedIds =
+    agreementIds
+      .map(id => `'${id}'`)
+      .join(",");
+
+  const response = await fetch(
+    "https://preview-rls09.congacloud.com/api/data/v1/query/APTS_Account_Contract_c",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        ObjectName:
+          "APTS_Account_Contract_c",
+
+        Criteria: `
+          APTS_Related_Agreement_c
+          IN (${formattedIds})
+        `,
+
+        Select: [
+          "Id",
+          "APTS_Member_c",
+          "APTS_Related_Agreement_c",
+          "APTS_End_Date_c"
+        ]
+      })
+    }
+  );
+
+  const result = await response.json();
+
+  return result.Data || [];
 }
