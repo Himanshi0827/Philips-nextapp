@@ -54,7 +54,7 @@ function TopBar({ title, onSave, agreementHeader, mode,
         disabled={!isProductCompleted}
         onClick={onAddDiscount}
       >
-        Add Discount
+    Add Discount Pricing Strategy
       </button>
     )}
 
