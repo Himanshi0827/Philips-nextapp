@@ -168,18 +168,18 @@ export async function queryGetQuoteItem(Quote_id:string) {
         ObjectName: "LineItem",
         Criteria: `Proposal_c ='${Quote_id}'`,
         Select: [
-          "Id",
-          "Name",
-          //  "Product.ProductCode", 
-           "Product",
-            "APTS_Strategic_Discount_Amount_c_c",
-            "APTS_Contract_Discount_Amount_c",
-           "APTS_Promotion_Discount_Amount_c_c",
-           "Proposal_c",
-          "APTS_BillingPlan_c",
-          "AdjustmentType",
-          "Quantity",
-          "APTS_Offered_Price_c_c"
+          "*"
+          // "Name",
+          // //  "Product.ProductCode", 
+          //  "Product",
+          //   "APTS_Strategic_Discount_Amount_c_c",
+          //   "APTS_Contract_Discount_Amount_c",
+          //  "APTS_Promotion_Discount_Amount_c_c",
+          //  "Proposal_c",
+          // "APTS_BillingPlan_c",
+          // "AdjustmentType",
+          // "Quantity",
+          // "APTS_Offered_Price_c_c"
         ]
       })
     }
