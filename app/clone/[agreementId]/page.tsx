@@ -306,41 +306,51 @@ const toggleColumnWrap = (columnKey, mode) => {
   }));
 };
 
+
 const columns = [
   { key: "Name", label: "Name" },
   { key: "AgreementGroup", label: "Agreement Group" },
   { key: "LineType", label: "Line Type" },
   { key: "DiscountType", label: "Discount Type" },
   { key: "MatchProducts", label: "Match Products By" },
+  { key: "Code", label: "Code" },
+  { key: "Matching", label: "Matching" },
+  { key: "ParentProduct", label: "Parent Product" },
+  { key: "PricingFamily", label: "Pricing Family" },
+  { key: "RelatedService", label: "Related Service" },
   { key: "BillingPlan", label: "Billing Plan" },
+  { key: "ExcludeFromContractPricelists", label: "Exclude From Contract Pricelists" },
   { key: "MG3", label: "MG3" },
-  { key: "Tier1", label: "Tier 1" },
-  { key: "Tier2", label: "Tier 2" },
-  { key: "Tier3", label: "Tier 3" },
-  { key: "Tier4", label: "Tier 4" },
-  { key: "Tier5", label: "Tier 5" },
-  { key: "ScaledDiscountT1", label: "Scaled Discount %, Tier 1" },
-  { key: "ScaledDiscountT2", label: "Scaled Discount %, Tier 2" },
-  { key: "ScaledDiscountT3", label: "Scaled Discount %, Tier 3" },
-  { key: "ScaledDiscountT4", label: "Scaled Discount %, Tier 4" },
-  { key: "ScaledDiscountT5", label: "Scaled Discount %, Tier 5" },
-  { key: "VolumeThreshold1", label: "Volume Threshold 1" },
-  { key: "VolumeThreshold2", label: "Volume Threshold 2" },
-  { key: "VolumeThreshold3", label: "Volume Threshold 3" },
-  { key: "VolumeThreshold4", label: "Volume Threshold 4" },
-  { key: "VolumeThreshold5", label: "Volume Threshold 5" },
-   { key: "NPO1", label: "NPO Tier 1" },
-   { key: "NPO2", label: "NPO Tier 2" },
-   { key: "NPO3", label: "NPO Tier 3" },
-   { key: "NPO4", label: "NPO Tier 4" },
-   { key: "NPO5", label: "NPO Tier 5" },
-   { key: "NPO6", label: "NPO Tier 6" },
-   { key: "NPO7", label: "NPO Tier 7" },
-   { key: "ScaledDiscountAmtT1", label: "Scaled Discount Amt, Tier 1" },
-   { key: "ScaledDiscountAmtT2", label: "Scaled Discount Amt, Tier 2" },
-   { key: "ScaledDiscountAmtT3", label: "Scaled Discount Amt, Tier 3" },
-   { key: "ScaledDiscountAmtT4", label: "Scaled Discount Amt, Tier 4" },
-   { key: "ScaledDiscountAmtT5", label: "Scaled Discount Amt, Tier 5" }
+  { key: "NotDiscountable", label: "Not Discountable" },
+  { key: "QuoteType", label: "Quote Type" },
+  { key: "ServicePlanType", label: "Service Plan Type" }
+  // { key: "Tier1", label: "Tier 1" },
+  // { key: "Tier2", label: "Tier 2" },
+  // { key: "Tier3", label: "Tier 3" },
+  // { key: "Tier4", label: "Tier 4" },
+  // { key: "Tier5", label: "Tier 5" },
+  // { key: "ScaledDiscountT1", label: "Scaled Discount %, Tier 1" },
+  // { key: "ScaledDiscountT2", label: "Scaled Discount %, Tier 2" },
+  // { key: "ScaledDiscountT3", label: "Scaled Discount %, Tier 3" },
+  // { key: "ScaledDiscountT4", label: "Scaled Discount %, Tier 4" },
+  // { key: "ScaledDiscountT5", label: "Scaled Discount %, Tier 5" },
+  // { key: "VolumeThreshold1", label: "Volume Threshold 1" },
+  // { key: "VolumeThreshold2", label: "Volume Threshold 2" },
+  // { key: "VolumeThreshold3", label: "Volume Threshold 3" },
+  // { key: "VolumeThreshold4", label: "Volume Threshold 4" },
+  // { key: "VolumeThreshold5", label: "Volume Threshold 5" },
+  //  { key: "NPO1", label: "NPO Tier 1" },
+  //  { key: "NPO2", label: "NPO Tier 2" },
+  //  { key: "NPO3", label: "NPO Tier 3" },
+  //  { key: "NPO4", label: "NPO Tier 4" },
+  //  { key: "NPO5", label: "NPO Tier 5" },
+  //  { key: "NPO6", label: "NPO Tier 6" },
+  //  { key: "NPO7", label: "NPO Tier 7" },
+  //  { key: "ScaledDiscountAmtT1", label: "Scaled Discount Amt, Tier 1" },
+  //  { key: "ScaledDiscountAmtT2", label: "Scaled Discount Amt, Tier 2" },
+  //  { key: "ScaledDiscountAmtT3", label: "Scaled Discount Amt, Tier 3" },
+  //  { key: "ScaledDiscountAmtT4", label: "Scaled Discount Amt, Tier 4" },
+  //  { key: "ScaledDiscountAmtT5", label: "Scaled Discount Amt, Tier 5" }
 ];
 const startResize = (e, columnKey) => {
   e.preventDefault();
@@ -654,18 +664,18 @@ onChange={(record) => {
                        <th>Scale Discount Amt T1</th><th>Scale Discount Amt T2</th><th>Scale Discount Amt T3</th><th>Scale Discount Amt T4</th><th>Scale Discount Amt T5</th> */}
           </tr>
         </thead>
-        <tbody>
+         <tbody>
           {lineItems
           .filter(li => {
 
             {/* {filteredLineItems.map(li => { */}
       if (sourceGroup.length === 0) return true;
-
+ 
       return sourceGroup.some(
         group => group.Id === li.APTS_Agreement_Group_c?.Id
       );
     })
-
+           
             .map(item => (
               <tr key={item.Id}>
                 <td>
@@ -679,7 +689,7 @@ onChange={(record) => {
                     onChange={() => toggleSelect(item)}
                   /> */}
                 </td>
-                <td  className={
+                <td className={
     wrapColumns["Name"] === "wrap"
       ? "wrap-cell"
       : "clip-cell"
@@ -713,23 +723,82 @@ onChange={(record) => {
       ? "wrap-cell"
       : "clip-cell"
   }>{item.APTS_Discount_Type_c}</td>
-                <td  className={
+                <td className={
     wrapColumns["MatchProductsBy"] === "wrap"
       ? "wrap-cell"
       : "clip-cell"
   }>{item.APTS_Match_Products_By_c}</td>
 
+<td className={
+    wrapColumns["Code"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.Code_c}</td>
+
+
+                <td className={
+    wrapColumns["Matching"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }> {item.APTS_Match_Products_By_c === "Hierarchy"
+                        ? item?.Matching_c
+                        : item.APTS_Match_Products_By_c === "Product"
+                          ? item?.Product.Name
+                          : ""}</td>
+
+ <td className={
+    wrapColumns["ParentProduct"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Parent_Product_c?.Name}</td>
+   <td className={
+    wrapColumns["PricingFamily"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.Pricing_Family_c}</td>
+
+                <td className={
+    wrapColumns["RelatedService"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.ServiceLocation}</td>
                 <td className={
     wrapColumns["BillingPlan"] === "wrap"
       ? "wrap-cell"
       : "clip-cell"
   }>{item.APTS_BillingPlan_c}</td>
-                <td className={
+                
+
+    <td className={
+    wrapColumns["ExcludeFromContractPricelists"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Exclude_From_Contract_Pricelists_c== true
+                        ? "True"
+                        :"False"}</td>
+  <td className={
     wrapColumns["MG3"] === "wrap"
       ? "wrap-cell"
       : "clip-cell"
   }>{item.APTS_MG3_Service_c}</td>
-                <td className={
+    <td className={
+    wrapColumns["NotDiscountable"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Not_Discountable_c== true
+                        ? "True"
+                        :"False"}</td>
+    <td className={
+    wrapColumns["QuoteType"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Quote_Type_c}</td>
+    <td className={
+    wrapColumns["ServicePlanType"] === "wrap"
+      ? "wrap-cell"
+      : "clip-cell"
+  }>{item.APTS_Service_Plan_Type_c}</td>
+                {/* <td className={
     wrapColumns["DiscountTier1"] === "wrap"
       ? "wrap-cell"
       : "clip-cell"
@@ -749,7 +818,7 @@ onChange={(record) => {
       ? "wrap-cell"
       : "clip-cell"
   }>{item.APTS_Discount_Tier_4_c}</td>
-                 <td className={
+                <td className={
     wrapColumns["DiscountTier5"] === "wrap"
       ? "wrap-cell"
       : "clip-cell"
@@ -805,37 +874,37 @@ onChange={(record) => {
       : "clip-cell"
   }>{item.APTS_Volume_Threshold_5_c}</td>
                     <td className={
-    wrapColumns["NPOTier1"] === "wrap"
+    wrapColumns["NPOSTier1"] === "wrap"
       ? "wrap-cell"
       : "clip-cell"
   }>{item.APTS_NPO_Tier_1_c?.Value}</td>
                      <td className={
-    wrapColumns["NPOTier2"] === "wrap"
+    wrapColumns["NPOSTier2"] === "wrap"
       ? "wrap-cell"
       : "clip-cell"
   }>{item.APTS_NPO_Tier_2_c?.Value}</td>
                       <td className={
-    wrapColumns["NPOTier3"] === "wrap"
+    wrapColumns["NPOSTier3"] === "wrap"
       ? "wrap-cell"
       : "clip-cell"
   }>{item.APTS_NPO_Tier_3_c?.Value}</td>
                        <td className={
-    wrapColumns["NPOTier4"] === "wrap"
+    wrapColumns["NPOSTier4"] === "wrap"
       ? "wrap-cell"
       : "clip-cell"
   }>{item.APTS_NPO_Tier_4_c?.Value}</td>
                         <td className={
-    wrapColumns["NPOTier5"] === "wrap"
+    wrapColumns["NPOSTier5"] === "wrap"
       ? "wrap-cell"
       : "clip-cell"
   }>{item.APTS_NPO_Tier_5_c?.Value}</td>
                          <td className={
-    wrapColumns["NPOTier6"] === "wrap"
+    wrapColumns["NPOSTier6"] === "wrap"
       ? "wrap-cell"
       : "clip-cell"
   }>{item.APTS_NPO_Tier_6_c?.Value}</td>
                           <td className={
-    wrapColumns["NPOTier7"] === "wrap"
+    wrapColumns["NPOSTier7"] === "wrap"
       ? "wrap-cell"
       : "clip-cell"
   }>{item.APTS_NPO_Tier_7_c?.Value}</td>
@@ -853,7 +922,7 @@ onChange={(record) => {
     wrapColumns["ScaledDiscountAmountTier3"] === "wrap"
       ? "wrap-cell"
       : "clip-cell"
-  }>{item.APTS_Scaled_Discount_Amount_Tier_3_c?.Value}</td>
+  }>{item.APTS_APTS_Scaled_Discount_Amount_Tier_3_c?.Value}</td>
                     <td className={
     wrapColumns["ScaledDiscountAmountTier4"] === "wrap"
       ? "wrap-cell"
@@ -864,8 +933,8 @@ onChange={(record) => {
       ? "wrap-cell"
       : "clip-cell"
   }>{item.APTS_Scaled_Discount_Amount_Tier_5_c?.Value}</td>
-
-
+  */}
+               
               </tr>
             ))}
         </tbody>
