@@ -810,7 +810,7 @@ const handleNext = () => {
       <div className="list-box">
         {data.selectedParentProducts.map(p => (
           <div key={p.Id} className="list-item">
-            🧩 [{p.Name}•{p.ProductCode}] -->[{p.ChildName}•{p.ChildProductCode}]
+            🧩 [{p.Name}•{p.ProductCode}] --&gt;[{p.ChildName}•{p.ChildProductCode}]
             <span
               className="remove"
               onClick={() =>{
