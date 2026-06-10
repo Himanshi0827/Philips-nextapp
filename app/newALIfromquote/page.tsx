@@ -700,7 +700,8 @@ export default function NewALIfromQuotes() {
     }
   }, [selectedSomeDisplayItems, qliPageItems, SelectedItems]);
   
-  const handleCheckDuplicates = async () => {
+  // const handleCheckDuplicates = async () => {
+   const goToDuplicatePage = async () => {
     try {
       if (SelectedItems.length === 0) {
         toast.error("Please select at least one Quote Line Item");
@@ -782,6 +783,7 @@ export default function NewALIfromQuotes() {
 
     for (const row of duplicateData) {
       const qli = row.qli;
+      const selectedDiscountType = getSelectedDiscountType(qli);
 
       if (row.duplicateAli && row.selectedOption === "QLI") {
         const yesterday = new Date();
@@ -820,8 +822,21 @@ if (isTransactionContract) {
 }
 
 // Fix for Discounts: ensure Number conversion is safe
-const adjType = qli.AdjustmentType || qli.Apttus_QPConfig__AdjustmentType__c; 
-
+// const adjType = qli.AdjustmentType || qli.Apttus_QPConfig__AdjustmentType__c; 
+if (applyDeviated) {
+  if (selectedDiscountType === "Net Price Override") {
+    payload.APTS_Discount_Type_c = "Net Price Override";
+    payload.APTS_NPO_Tier_1_c = Number(
+      qli.APTS_Offered_Price_Without_Promo_c?.Value  || 0
+    );
+  } else {
+    const stratDisc = Number(qli.APTS_Strategic_Discount_c || 0);
+    const contDisc = Number(qli.APTS_ContractDiscount_c || 0);
+    payload.APTS_Discount_Type_c = "Tier Discount";
+    payload.APTS_Discount_Tier_1_c = stratDisc + contDisc;
+  }
+} else {
+  const adjType = qli.AdjustmentType || qli.AdjustmentType; 
 if (adjType === "% Discount") {
   const stratDisc = Number(qli.APTS_Strategic_Discount_Amount_c_c?.Value || 0);
   const contDisc = Number(qli.APTS_Contract_Discount_Amount_c?.Value || 0);
@@ -833,7 +848,7 @@ else if (adjType === "Net Price Override") {
   payload.APTS_Discount_Type_c = "Net Price Override";
   payload.APTS_NPO_Tier_1_c = Number(qli.APTS_Offered_Price_c_c?.Value || 0);
 }
-
+}
         await createAgreementLineItem(payload);
       }
     }
@@ -892,6 +907,83 @@ const handleDiscountTypeChange = (id, value) => {
     ...prev,
     [id]: value
   }));
+   };
+const getSelectedDiscountType = (item) =>
+  discountSelections[item.Id] ?? item.DiscountType ?? "None";
+
+const ensureDeviatedDiscountDefaults = (items) => {
+  const nextSelections = { ...discountSelections };
+  let changed = false;
+
+  items.forEach((item) => {
+    if (!nextSelections[item.Id]) {
+      nextSelections[item.Id] = "None";
+      changed = true;
+    }
+  });
+
+  if (changed) {
+    setDiscountSelections(nextSelections);
+  }
+
+  return nextSelections;
+};
+
+const validateDeviatedSelection = (items) => {
+  console.log("Validating deviated selection for items:", items);
+  const selectedByProductCode = new Map();
+
+  for (const item of items) {
+    const childCode = item.APTS_Product_Code_c || "";
+    const parentCode = item.APTS_Parent_Bundle_Product_Code_c || "";
+    const key = childCode || parentCode;
+    console.log(`Checking item ${item.Id} with key:`, key);
+
+
+    if (!key) continue;
+
+    if (selectedByProductCode.has(key)) {
+      toast.error(
+        "Duplicate product codes are not allowed when Apply Deviated Discounts is ON."
+      );
+      return false;
+    }
+
+    selectedByProductCode.set(key, item);
+  }
+
+  const selectedIds = new Set(items.map((item) => item.Id));
+  const optionRows = items.filter((item) => item.AdjustmentType === "Option");
+  const missingParents = optionRows.filter((item) => {
+    const parentId = item.ParentId || item.ParentItemId || item.ParentProductId;
+    if (parentId && selectedIds.has(parentId)) return false;
+    const parentCode = item.APTS_Parent_Bundle_Product_Code_c;
+    if (!parentCode) return true;
+    return !items.some(
+      (candidate) => candidate.APTS_Product_Code_c === parentCode
+    );
+  });
+console.log("Option rows:", optionRows);
+console.log("Missing parents:", missingParents);
+console.log("Selected IDs:", selectedIds);
+  if (missingParents.length > 0) {
+    toast.error(
+      "Some selected option rows do not have their parent selected. Please add the parent product first."
+    );
+    return false;
+  }
+
+  const zeroPriced = items.filter(
+    (item) => Number(item.APTS_Offered_Price_Without_Promo_c || 0) === 0
+  );
+  if (zeroPriced.length > 0) {
+    toast.error(
+      "Zero-priced products are not allowed for deviated discount creation."
+    );
+    return false;
+  }
+
+  return true;
 };
   
   useEffect(() => {
@@ -1075,6 +1167,10 @@ const handleDiscountTypeChange = (id, value) => {
       );
       return;
     }
+      if (SelectedItems.length === 0) {
+      toast.error("Please select at least one Quote Line Item");
+      return;
+    }
     try {
       // 1. Validation
       if (!selected_agreement_g?.Id) {
@@ -1082,57 +1178,64 @@ const handleDiscountTypeChange = (id, value) => {
         return;
       }
  
-      const targetAgreementId = acc.Id; // Passed from navigation state
+      // const targetAgreementId = acc.Id; // Passed from navigation state
  
-      // 2. Map QLI to ALI Payload
-      const requests = SelectedItems.map((qli) => {
-        // Calculate Discount (Mapping the 'Strategic + Contract' logic from Apex)
-        const stratDisc = qli.APTS_Strategic_Discount_Amount_c_c?.Value || 0;
-        const contDisc = qli.APTS_Contract_Discount_Amount_c?.Value || 0;
-        const combinedDiscount = stratDisc + contDisc;
+      // // 2. Map QLI to ALI Payload
+      // const requests = SelectedItems.map((qli) => {
+      //   // Calculate Discount (Mapping the 'Strategic + Contract' logic from Apex)
+      //   const stratDisc = qli.APTS_Strategic_Discount_Amount_c_c?.Value || 0;
+      //   const contDisc = qli.APTS_Contract_Discount_Amount_c?.Value || 0;
+      //   const combinedDiscount = stratDisc + contDisc;
  
-        const payload = {
-          Name: qli.Name,
-          Agreement: targetAgreementId,
+      //   const payload = {
+      //     Name: qli.Name,
+      //     Agreement: targetAgreementId,
  
-          // Product Mapping
-          Product: {
-            Id: qli.Product.Id,
-          },
+      //     // Product Mapping
+      //     Product: {
+      //       Id: qli.Product.Id,
+      //     },
  
-          // Agreement Group Mapping
-          APTS_Agreement_Group_c: {
-            Id: selected_agreement_g.Id,
-            Name: selected_agreement_g.Name,
-          },
+      //     // Agreement Group Mapping
+      //     APTS_Agreement_Group_c: {
+      //       Id: selected_agreement_g.Id,
+      //       Name: selected_agreement_g.Name,
+      //     },
  
-          // Strategy Mapping (Logic from Apex: default to Tier Discount)
-          APTS_Discount_Type_c: "Tier Discount",
-          APTS_Discount_Tier_1_c: combinedDiscount,
+      //     // Strategy Mapping (Logic from Apex: default to Tier Discount)
+      //     APTS_Discount_Type_c: "Tier Discount",
+      //     APTS_Discount_Tier_1_c: combinedDiscount,
  
-          // Configuration Mapping
-          Line_Type_c: "Equipment", // Defaulting to Equipment as per your Apex createALI
-          APTS_Match_Products_By_c: "Product",
-          APTS_PO_Number_c: qli.Id,
-          //  APTS_Proposal_Line_Item_c: qli.Id, // Cross-reference back to QLI
-        };
-        console.log("ali", payload);
-        // Call the API utility you already have in api.js
-        return createAgreementLineItem(payload);
-      });
+      //     // Configuration Mapping
+      //     Line_Type_c: "Equipment", // Defaulting to Equipment as per your Apex createALI
+      //     APTS_Match_Products_By_c: "Product",
+      //     APTS_PO_Number_c: qli.Id,
+      //     //  APTS_Proposal_Line_Item_c: qli.Id, // Cross-reference back to QLI
+      //   };
+      //   console.log("ali", payload);
+      //   // Call the API utility you already have in api.js
+      //   return createAgreementLineItem(payload);
+      // });
  
-      // 3. Execute all requests
-      await Promise.all(requests);
+      // // 3. Execute all requests
+      // await Promise.all(requests);
  
-      toast.success(`${SelectedItems.length} Agreement Line Items created!`);
+      // toast.success(`${SelectedItems.length} Agreement Line Items created!`);
 
     
-       navigate.push(`/${acc.Id}`, {
-        state: { agreementId: targetAgreementId, agreementName: accountname },
-      });
+      //  navigate.push(`/${acc.Id}`, {
+      //   state: { agreementId: targetAgreementId, agreementName: accountname },
+      // });
+      if (applyDeviated) {
+        ensureDeviatedDiscountDefaults(SelectedItems);
+        if (!validateDeviatedSelection(SelectedItems)) {
+          return;
+        }
+      }
+      await goToDuplicatePage();
     } catch (err) {
-      console.error("Failed to create ALIs:", err);
-      toast.error("Error creating Agreement Line Items.");
+      console.error("Failed to prepare ALIs:", err);
+      toast.error("Error preparing Agreement Line Items.");
     }
   };
 const isDisabled = (item) =>
@@ -1370,7 +1473,7 @@ const isDisabled = (item) =>
                                   <td>{item.APTS_Product_Code_c}</td>)}
                                   {applyDeviated && (
   <>
-    <td>{item.Apttus_QPConfig__AdjustmentType__c}</td>
+    <td>{item.AdjustmentType}</td>
 
     <td>
       <select
@@ -1391,7 +1494,7 @@ const isDisabled = (item) =>
       <td>{item.APTS_Parent_Bundle_Product_Code_c}</td>
       <td>{item.Product.Name}</td>
       <td>
-      {item.APTS_Offered_Price_Without_Promo__c}
+      {item.APTS_Offered_Price_Without_Promo_c?.Value}
     </td>
   </>
 )}  
@@ -1414,13 +1517,13 @@ const isDisabled = (item) =>
                                   </td> */}
                                   <td>
   {applyDeviated
-    ? item.APTS_ContractDiscount__c
+    ? item.APTS_ContractDiscount_c
     : item.APTS_Solution_Contract_Discount__c}
 </td>
 
 <td>
   {applyDeviated
-    ? item.APTS_Strategic_Discount__c
+    ? item.APTS_Strategic_Discount_c
     : item.APTS_Solution_Strategic_Discount__c}
 </td>
 
@@ -1451,7 +1554,8 @@ const isDisabled = (item) =>
             {/* <button className="btn-primary">
           Add Ali
         </button> */}
-         <button className="btn-primary" onClick={handleCheckDuplicates} disabled={selectedHasDuplicates}>
+         {/* <button className="btn-primary" onClick={handleCheckDuplicates} disabled={selectedHasDuplicates}> */}
+           <button className="btn-primary" onClick={handleAddAli} disabled={SelectedItems.length === 0 || selectedHasDuplicates}>
               Add Ali
             </button>
           </div>
