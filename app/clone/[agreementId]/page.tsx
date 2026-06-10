@@ -735,12 +735,11 @@ onChange={(record) => {
       : "clip-cell"
   }>{item.Code_c}</td>
 
-
-                <td className={
+            <td className={
     wrapColumns["Matching"] === "wrap"
       ? "wrap-cell"
       : "clip-cell"
-                  }>
+  }>
     {item.APTS_Match_Products_By_c === "Hierarchy" && item.Hierarchy_c?.Id ? (
       <a
         href={`https://preview-rls09.congacloud.com/admin/entity/Product_Hierarchy_c/detail/${item.Hierarchy_c.Id}/`}
@@ -764,11 +763,7 @@ onChange={(record) => {
     )}
   </td>
 
-  /* }> {item.APTS_Match_Products_By_c === "Hierarchy"
-                        ? item?.Matching_c
-                        : item.APTS_Match_Products_By_c === "Product"
-                          ? item?.Product.Name
-                          : ""}</td> */
+              
 
  <td className={
     wrapColumns["ParentProduct"] === "wrap"
