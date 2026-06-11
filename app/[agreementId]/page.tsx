@@ -411,15 +411,50 @@ const handleDelete = async (id) => {
                     <td>{item.Code_c}</td>
 
                     <td>
-                      {item.APTS_Match_Products_By_c === "Hierarchy"
+                       {item.APTS_Match_Products_By_c === "Hierarchy" && item.Hierarchy_c?.Id ? (
+      <a
+        href={`https://preview-rls09.congacloud.com/admin/entity/Product_Hierarchy_c/detail/${item.Hierarchy_c.Id}/`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="clone-link"
+      >
+        {item.Hierarchy_c?.Name || item.Matching_c || "-"}
+      </a>
+    ) : item.APTS_Match_Products_By_c === "Product" && item.Product?.Id ? (
+      <a
+        href={`https://preview-rls09.congacloud.com/admin/entity/Product/detail/${item.Product.Id}/`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="clone-link"
+      >
+        {item.Product?.Name || "-"}
+      </a>
+    ) : (
+      item.Matching_c || "-"
+    )}
+                      /* {item.APTS_Match_Products_By_c === "Hierarchy"
                         ? item?.Matching_c
                         : item.APTS_Match_Products_By_c === "Product"
                           ? item?.Product.Name
-                          : ""}
+                          : ""} */
                     </td>
 
 
-                       <td>{item?.APTS_Parent_Product_c?.Name}</td>
+                       <td>
+                         /* {item?.APTS_Parent_Product_c?.Name} */
+                          {item.APTS_Parent_Product_c?.Id ? (
+      <a
+        href={`https://preview-rls09.congacloud.com/admin/entity/Product/detail/${item.APTS_Parent_Product_c.Id}/`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="clone-link"
+      >
+        {item.APTS_Parent_Product_c?.Name || "-"}
+      </a>
+    ) : (
+      "-"
+    )}
+                       </td>
                   <td>{item?.Parent_Product_Code_c}</td>
                   <td>{item.Pricing_Family_c}</td>
              
