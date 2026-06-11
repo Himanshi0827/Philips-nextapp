@@ -432,16 +432,12 @@ const handleDelete = async (id) => {
     ) : (
       item.Matching_c || "-"
     )}
-                      /* {item.APTS_Match_Products_By_c === "Hierarchy"
-                        ? item?.Matching_c
-                        : item.APTS_Match_Products_By_c === "Product"
-                          ? item?.Product.Name
-                          : ""} */
+                    
                     </td>
 
 
                        <td>
-                         /* {item?.APTS_Parent_Product_c?.Name} */
+                        
                           {item.APTS_Parent_Product_c?.Id ? (
       <a
         href={`https://preview-rls09.congacloud.com/admin/entity/Product/detail/${item.APTS_Parent_Product_c.Id}/`}
