@@ -383,6 +383,7 @@ function NewAgreement() {
           },
           Line_Type_c: payload.productSelection.LineType,
           APTS_Match_Products_By_c: payload.productSelection.MatchProductsBy,
+           APTS_MG3_Service_c: payload.productSelection.MG3,
 
           ...(payload.productSelection.Field && {
             [payload.productSelection.Field]: {
