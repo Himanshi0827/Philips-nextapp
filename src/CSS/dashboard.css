@@ -581,6 +581,13 @@
   font-size: 14px;
   color: #333;
 }
+ .toggle-control {
+  width: fit-content;
+  cursor: pointer;
+  gap: 10px;
+  user-select: none;
+}
+ 
  
  
 /* SWITCH */
@@ -590,6 +597,7 @@
   display: inline-block;
   width: 46px;
   height: 24px;
+  flex: 0 0 auto;
 }
  
 .switch input {
