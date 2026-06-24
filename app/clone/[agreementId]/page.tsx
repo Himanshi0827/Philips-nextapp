@@ -81,6 +81,7 @@ console.log("target agreement id",targetAgreementId);
 
 console.log("groups",final);
       setAgreementPlist(final|| []);
+      setTargetGroup(null);
       console.log("agreementPlist",agreementPlist);
     } catch (err) {
       console.error(err);
@@ -498,7 +499,9 @@ onChange={(record) => {
     {/* <option value="">
      Select An Option
     </option> */}
-
+ <option value="" disabled hidden>
+     Select an Option
+    </option>
     {agreementPlist.map((group) => (
       <option
         key={group.Id}
