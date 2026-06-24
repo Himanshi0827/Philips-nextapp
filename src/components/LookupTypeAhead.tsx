@@ -55,6 +55,22 @@ if(field?.AgreementId)
     });
   }
 
+  if (field.hierarchyMode && field.selectedItems) {
+    const selectedSet = new Set(
+      field.selectedItems.map((item) => {
+        if (field.hierarchyMode === "BU") return item.Business_Unit_ID_c;
+        if (field.hierarchyMode === "MAG") return item.Main_Article_Group_ID_c;
+        return item.Article_Group_ID_c;
+      })
+    );
+
+    filtered = filtered.filter((record) => {
+      if (field.hierarchyMode === "BU") return !selectedSet.has(record.Business_Unit_ID_c);
+      if (field.hierarchyMode === "MAG") return !selectedSet.has(record.Main_Article_Group_ID_c);
+      return !selectedSet.has(record.Article_Group_ID_c);
+    });
+  }
+
   setResults(filtered);
   setShowDropdown(true);
 }, 300);
@@ -62,6 +78,23 @@ if(field?.AgreementId)
   }, [inputValue]);
  
   const handleSelect = (record) => {
+    if (field.hierarchyMode) {
+      onChange({
+        ...record,
+        Id: record.Id,
+        Name:
+          field.hierarchyMode === "BU"
+            ? record.Business_Unit_Name_c
+            : field.hierarchyMode === "MAG"
+              ? record.Main_Article_Group_Name_c
+              : record.Article_Group_Name_c,
+      });
+      setInputValue("");
+      setShowDropdown(false);
+      setResults([]);
+      return;
+    }
+
     onChange({
       Id: record.Id,
       Name: record.Name,
@@ -129,6 +162,33 @@ if(field?.AgreementId)
            
           </div>
         </div>
+        ) : field.hierarchyMode === "BU" ? (
+            <div className="lookup-content">
+              <div className="lookup-title">
+                {r.Business_Unit_Name_c} <small>({r.Business_Unit_ID_c})</small>
+              </div>
+              <div className="lookup-subtext">
+                {r.Business_Group_Name_c} <small>({r.Business_Group_ID_c})</small>
+              </div>
+            </div>
+          ) : field.hierarchyMode === "MAG" ? (
+            <div className="lookup-content">
+              <div className="lookup-title">
+                {r.Main_Article_Group_Name_c} <small>({r.Main_Article_Group_ID_c})</small>
+              </div>
+              <div className="lookup-subtext">
+                {r.Business_Unit_Name_c} <small>({r.Business_Unit_ID_c})</small>
+              </div>
+            </div>
+          ) : field.hierarchyMode === "AG" ? (
+            <div className="lookup-content">
+              <div className="lookup-title">
+                {r.Article_Group_Name_c} <small>({r.Article_Group_ID_c})</small>
+              </div>
+              <div className="lookup-subtext">
+                {r.Main_Article_Group_Name_c} <small>({r.Main_Article_Group_ID_c})</small>
+              </div>
+            </div>
           ) : (
       
           <div className="lookup-content">
