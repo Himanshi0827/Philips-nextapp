@@ -1,16 +1,17 @@
 'use client';
 
-import { useState,useEffect } from "react";
+import { useState,useEffect,useRef } from "react";
 import {toast} from "react-toastify";
 
 import {GetRecords} from "../api/Records";
 import {queryAgreementLineItemsByAgreement} from "../api/queryAgreementLineItemsByAgreement";
+import { queryHierarchyByCriteria, queryHierarchyMags, queryHierarchyAgs } from "../api/QueryProductHierarchy";
 import { GetPicklist } from "../api/GetPicklist";
-import { searchLookupRecords } from "../api/SearchLookup";
+import { searchLookupRecords, searchHierarchyRecords, dedupeHierarchyResults} from "../api/SearchLookup";
 import { getParentProduct } from "../api/GetParentProduct";
 import { getProductsByParent } from "../api/GetProductsByParent";
 
-import HierarchyLookupList from "../components/HierarchyLookupList";
+// import HierarchyLookupList from "../components/HierarchyLookupList";
 import ParentProductLookup from "../components/ParentProductLookup";
 import LookupTypeAhead from "../components/LookupTypeAhead";
 
@@ -48,6 +49,11 @@ const [selectedBUs, setSelectedBUs] = useState(data.selectedBUs || []);
 const [selectedMAGs, setSelectedMAGs] = useState(data.selectedMAGs || []);
 const [selectedAGs, setSelectedAGs] = useState(data.selectedAGs || []);
 const [selectedMG3, setSelectedMG3] = useState(data.selectedMG3 || "");
+const [selectAllMAGs, setSelectAllMAGs] = useState(false);
+const [selectAllAGs, setSelectAllAGs] = useState(false);
+const suppressAutoSelectMAGRef = useRef(false);
+const suppressAutoSelectAGRef = useRef(false);
+
 
 
 const [selectedProducts, setSelectedProducts]=useState(data.selectedProducts ||[]);
@@ -55,6 +61,8 @@ const [selectedProducts, setSelectedProducts]=useState(data.selectedProducts ||[
   const [matchproducts,setMatchProducts]=useState([]);
  const [parentOptions, setParentOptions] = useState([]);
  const [mg3List, setMg3List] = useState([]);
+const [mainArticleGroupList, setMainArticleGroupList] = useState([]);
+ const [articleGroupList, setArticleGroupList] = useState([]);
  
  
  
@@ -72,6 +80,8 @@ const defaultValue= (value)=>
   }
 }
 const [existingALIs, setExistingALIs] = useState([]);
+const [hierarchySearchQuery, setHierarchySearchQuery] = useState("");
+
 useEffect(() => {
   const fetchALI = async () => {
     if (!data.agreementId) return;
@@ -136,7 +146,7 @@ useEffect(() => {
   };
 
   refreshParentOptions();
-}, [data.selectedProducts, data.MatchProductsBy]);
+}, [data.selectedProducts],[ data.MatchProductsBy]);
 
 const handleProductSelect = async (record) => {
   handleAddRecord(record);
@@ -181,60 +191,99 @@ useEffect(() => {
     setSelectedAGs(data.selectedAGs || []);
   }
 }, [data.MatchProductsBy]);
-const buildHierarchySelectedRecords = () => {
-  const records = product.filter(p => {
- 
-    // BU must match (mandatory)
-    const buMatch = selectedBUs.some(
-      bu => bu.Business_Unit_ID_c === p.Business_Unit_ID_c
-    );
- 
-    if (!buMatch) return false;
- 
-    // CASE 1: Only BU selected
+const buildHierarchySelectedRecords = async () => {
+  const mapped = [];
+
+  for (const bu of selectedBUs) {
     if (selectedMAGs.length === 0 && selectedAGs.length === 0) {
-      return (
-        !p.Main_Article_Group_ID_c &&
-        !p.Article_Group_ID_c
-      );
+      const res = await queryHierarchyByCriteria({
+        criteria: `Business_Unit_ID_c= '${bu.Business_Unit_ID_c}' AND Main_Article_Group_ID_c='' AND Article_Group_ID_c='' AND APTS_MP3_c='${data.MG3 || ""}'`,
+        select: [
+          "Business_Unit_Name_c",
+          "Business_Unit_ID_c",
+          "Name",
+          "Id"
+        ],
+      });
+      res?.Data?.forEach((row) => mapped.push({
+        Id: row.Id ,
+        Name: row.Name ,
+        Business_Unit_ID_c: row.Business_Unit_ID_c,
+        Business_Unit_Name_c: row.Business_Unit_Name_c,
+      }));
+      continue;
     }
- 
-    // CASE 2: BU + MAG selected (AG not selected)
-    if (selectedMAGs.length > 0 && selectedAGs.length === 0) {
-      return (
-        selectedMAGs.some(
-          mag => mag.Main_Article_Group_ID_c === p.Main_Article_Group_ID_c
-        ) &&
-        !p.Article_Group_ID_c
-      );
+
+    const buMags = selectedMAGs
+      .filter((mag) => mag.Business_Unit_ID_c === bu.Business_Unit_ID_c)
+      ;
+
+    for (const mag of buMags) {
+      if (selectedAGs.length === 0) {
+        const res = await queryHierarchyByCriteria({
+          criteria: `Business_Unit_ID_c= '${bu.Business_Unit_ID_c}' AND Main_Article_Group_ID_c='${mag.Main_Article_Group_ID_c}' AND Article_Group_ID_c='' AND APTS_MP3_c='${data.MG3 || ""}'`,
+          select: [
+            "Business_Unit_Name_c",
+            "Main_Article_Group_Name_c",
+            "Business_Unit_ID_c",
+            "Main_Article_Group_ID_c",
+            "Name",
+            "Id"
+          ],
+        });
+        res?.Data?.forEach((row) => mapped.push({
+          Id: row.Id ,
+          Name: row.Name ,
+          Business_Unit_ID_c: row.Business_Unit_ID_c,
+          Business_Unit_Name_c: row.Business_Unit_Name_c,
+          Main_Article_Group_ID_c: row.Main_Article_Group_ID_c,
+          Main_Article_Group_Name_c: row.Main_Article_Group_Name_c,
+        }));
+        continue;
+      }
+
+      const magAgs = selectedAGs
+          .filter(
+            (ag) => ag.Main_Article_Group_ID_c === mag.Main_Article_Group_ID_c
+          );
+
+      for (const ag of magAgs) {
+        const res = await queryHierarchyByCriteria({
+          criteria: `Business_Unit_ID_c= '${bu.Business_Unit_ID_c}' AND Main_Article_Group_ID_c='${mag.Main_Article_Group_ID_c}' AND Article_Group_ID_c='${ag.Article_Group_ID_c}' AND APTS_MP3_c='${data.MG3 || ""}'`,
+          select: [
+            "Business_Unit_Name_c",
+            "Main_Article_Group_Name_c",
+            "Article_Group_Name_c",
+            "Business_Unit_ID_c",
+            "Main_Article_Group_ID_c",
+            "Article_Group_ID_c",
+            "Name",
+            "Id"
+          ],
+        });
+        res?.Data?.forEach((row) => mapped.push({
+          Id: row.Id ,
+          Name: row.Name ,
+          Business_Unit_ID_c: row.Business_Unit_ID_c,
+          Business_Unit_Name_c: row.Business_Unit_Name_c,
+          Main_Article_Group_ID_c: row.Main_Article_Group_ID_c,
+          Main_Article_Group_Name_c: row.Main_Article_Group_Name_c,
+          Article_Group_ID_c: row.Article_Group_ID_c,
+          Article_Group_Name_c: row.Article_Group_Name_c,
+        }));
+      }
     }
- 
-    // CASE 3: BU + MAG + AG selected
-    if (selectedMAGs.length > 0 && selectedAGs.length > 0) {
-      return (
-        selectedMAGs.some(
-          mag => mag.Main_Article_Group_ID_c === p.Main_Article_Group_ID_c
-        ) &&
-        selectedAGs.some(
-          ag => ag.Article_Group_ID_c === p.Article_Group_ID_c
-        )
-      );
-    }
- 
-    return false;
-  });
- 
-  const mapped = records.map(p => ({
-    Id: p.Id,
-    Name: p.Name
-  }));
- 
+  }
+
+  const uniqueMapped = Array.from(new Map(mapped.map((r) => [r.Id, r])).values());
+ console.log("Mapped Records for Hierarchy", uniqueMapped);
   onChange({
-    selectedRecords: mapped
+    selectedRecords: uniqueMapped
   });
 };
  
 
+ 
  
 const loadHierarchyData = async () => {
   try {
@@ -257,41 +306,115 @@ const loadHierarchyData = async () => {
 };
 
 //trial
-const businessUnits = product.filter(
-  (p, index, self) =>
-    p.Business_Unit_ID_c &&
-    index === self.findIndex(
-      x => x.Business_Unit_ID_c === p.Business_Unit_ID_c
-    ) &&
-    !selectedBUs.some(bu => bu.Business_Unit_ID_c === p.Business_Unit_ID_c)
-);
-console.log("bu",businessUnits);
-const mainArticleGroups = product.filter(
-  (p, index, self) =>
-    selectedBUs.some(
-      bu => bu.Business_Unit_ID_c === p.Business_Unit_ID_c
-    ) &&
-    p.Main_Article_Group_ID_c &&
-    index === self.findIndex(
-      x =>
-        x.Main_Article_Group_ID_c === p.Main_Article_Group_ID_c &&
-        x.Business_Unit_ID_c === p.Business_Unit_ID_c
-    ) &&
-    !selectedMAGs.some(
-      mag => mag.Main_Article_Group_ID_c === p.Main_Article_Group_ID_c
-    )
-);
-const articleGroups = product.filter(
-  (p, index, self) =>
-    selectedMAGs.some(
-      mag =>
-        mag.Main_Article_Group_ID_c === p.Main_Article_Group_ID_c
-    ) &&
-    p.Article_Group_ID_c  &&
-    !selectedAGs.some(
-      ag => ag.Article_Group_ID_c === p.Article_Group_ID_c
-    )
-);
+// const businessUnits = product.filter(
+//   (p, index, self) =>
+//     p.Business_Unit_ID_c &&
+//     index === self.findIndex(
+//       x => x.Business_Unit_ID_c === p.Business_Unit_ID_c
+//     ) &&
+//     !selectedBUs.some(bu => bu.Business_Unit_ID_c === p.Business_Unit_ID_c)
+// );
+// console.log("bu",businessUnits);
+// const mainArticleGroups = product.filter(
+//   (p, index, self) =>
+//     selectedBUs.some(
+//       bu => bu.Business_Unit_ID_c === p.Business_Unit_ID_c
+//     ) &&
+//     p.Main_Article_Group_ID_c &&
+//     index === self.findIndex(
+//       x =>
+//         x.Main_Article_Group_ID_c === p.Main_Article_Group_ID_c &&
+//         x.Business_Unit_ID_c === p.Business_Unit_ID_c
+//     ) &&
+//     !selectedMAGs.some(
+//       mag => mag.Main_Article_Group_ID_c === p.Main_Article_Group_ID_c
+//     )
+// );
+// const articleGroups = product.filter(
+//   (p, index, self) =>
+//     selectedMAGs.some(
+//       mag =>
+//         mag.Main_Article_Group_ID_c === p.Main_Article_Group_ID_c
+//     ) &&
+//     p.Article_Group_ID_c  &&
+//     !selectedAGs.some(
+//       ag => ag.Article_Group_ID_c === p.Article_Group_ID_c
+//     )
+// );
+const businessUnits = [];
+const mainArticleGroups = [];
+const allMainArticleGroups = [];
+const articleGroups = [];
+const allArticleGroups = [];
+
+const syncSelectedMAGs = (records) => {
+  const uniqueMap = new Map(
+    records
+      .filter((item) => item.Main_Article_Group_ID_c)
+      .map((item) => [item.Main_Article_Group_ID_c, item])
+  );
+  const uniqueRecords = Array.from(uniqueMap.values());
+  setSelectedMAGs(uniqueRecords);
+  onChange({ selectedMAGs: uniqueRecords });
+};
+
+const getUniqueMAGCount = (records) =>
+  new Set(records.filter((item) => item.Main_Article_Group_ID_c).map((item) => item.Main_Article_Group_ID_c)).size;
+
+const syncSelectedAGs = (records) => {
+  const uniqueMap = new Map(
+    records
+      .filter((item) => item.Article_Group_ID_c)
+      .map((item) => [item.Article_Group_ID_c, item])
+  );
+  const uniqueRecords = Array.from(uniqueMap.values());
+  setSelectedAGs(uniqueRecords);
+  onChange({ selectedAGs: uniqueRecords });
+};
+
+const getUniqueAGCount = (records) =>
+  new Set(records.filter((item) => item.Article_Group_ID_c).map((item) => item.Article_Group_ID_c)).size;
+
+useEffect(() => {
+  const allMagCount = getUniqueMAGCount(allMainArticleGroups);
+  const selectedMagCount = getUniqueMAGCount(selectedMAGs);
+
+  if (selectAllMAGs) {
+    suppressAutoSelectMAGRef.current = false;
+    if (allMagCount > 0 && selectedMagCount !== allMagCount) {
+      syncSelectedMAGs(allMainArticleGroups);
+    }
+    return;
+  }
+  if (suppressAutoSelectMAGRef.current) {
+    suppressAutoSelectMAGRef.current = false;
+    return;
+  }
+  if (selectedBUs.length > 0 && allMagCount > 0 && selectedMagCount === allMagCount) {
+    setSelectAllMAGs(true);
+  }
+}, [selectAllMAGs, allMainArticleGroups, selectedBUs.length, selectedMAGs]);
+
+useEffect(() => {
+  const allAGCount = getUniqueAGCount(allArticleGroups);
+  const selectedAGCount = getUniqueAGCount(selectedAGs);
+
+  if (selectAllAGs) {
+    suppressAutoSelectAGRef.current = false;
+    if (allAGCount > 0 && selectedAGCount !== allAGCount) {
+      syncSelectedAGs(allArticleGroups);
+    }
+    return;
+  }
+  if (suppressAutoSelectAGRef.current) {
+    suppressAutoSelectAGRef.current = false;
+    return;
+  }
+  if (selectedMAGs.length > 0 && allAGCount > 0 && selectedAGCount === allAGCount) {
+    setSelectAllAGs(true);
+  }
+}, [selectAllAGs, allArticleGroups, selectedMAGs.length, selectedAGs]);
+
 
 
 
@@ -324,10 +447,78 @@ useEffect(()=>
  
  
 const handleSelectBU = (record) => {
+   if (selectedBUs.some((bu) => bu.Business_Unit_ID_c === record.Business_Unit_ID_c)) return;
+ 
   const newList = [...selectedBUs, record]; // Create the new list first
   setSelectedBUs(newList); // Update local
   onChange({ selectedBUs: newList }); // Sync with parent using the NEW list
   onProductsChange(newList);
+  loadDistinctMagsForSelectedBus(newList);
+};
+
+const loadDistinctMagsForSelectedBus = async (bus = selectedBUs) => {
+  if (!bus.length) {
+    setMainArticleGroupList([]);
+    return;
+  }
+  const results = await Promise.all(
+    bus.map((bu) => queryHierarchyMags(bu.Business_Unit_ID_c))
+  );
+  const unique = dedupeHierarchyResults(
+    results.flatMap((res) => res?.Data || []),
+    "MAG"
+  );
+  setMainArticleGroupList(unique.filter((row) => row.Main_Article_Group_ID_c));
+};
+
+const loadDistinctAgsForSelectedMags = async (mags = selectedMAGs) => {
+  if (!mags.length) {
+    setArticleGroupList([]);
+    return;
+  }
+  const results = await Promise.all(
+    mags.map((mag) => queryHierarchyAgs(mag.Main_Article_Group_ID_c))
+  );
+  const unique = dedupeHierarchyResults(
+    results.flatMap((res) => res?.Data || []),
+    "AG"
+  );
+  setArticleGroupList(unique.filter((row) => row.Article_Group_ID_c));
+};
+
+const filterHierarchyResults = (rows, mode) => {
+  if (mode === "BU") {
+    return rows.filter((row) => row.Business_Unit_ID_c && row.Business_Group_ID_c);
+  }
+
+  if (mode === "MAG") {
+    const allowedBuIds = new Set(selectedBUs.map((bu) => bu.Business_Unit_ID_c));
+    return rows.filter(
+      (row) =>
+        row.Main_Article_Group_ID_c &&
+        allowedBuIds.has(row.Business_Unit_ID_c)
+    );
+  }
+
+  if (mode === "AG") {
+    const allowedMagIds = new Set(
+      selectedMAGs.map((mag) => mag.Main_Article_Group_ID_c)
+    );
+    return rows.filter(
+      (row) =>
+        row.Article_Group_ID_c &&
+        allowedMagIds.has(row.Main_Article_Group_ID_c)
+    );
+  }
+
+  return rows;
+};
+
+const searchHierarchyTypeAhead = async (criteria, mode) => {
+  if (!criteria || criteria.length < 3) return [];
+  const rows = await searchHierarchyRecords(criteria);
+  return dedupeHierarchyResults(filterHierarchyResults(rows, mode), mode);
+
 };
 const handleRemoveBU = (buId) => {
   // 1. Update local state so it reappears in the available list
@@ -337,16 +528,27 @@ const handleRemoveBU = (buId) => {
   // 2. Clear dependent selections (MAGs and AGs) because the parent BU is gone
   setSelectedMAGs([]);
   setSelectedAGs([]);
+   setMainArticleGroupList([]);
+  setArticleGroupList([]);
+  setSelectAllMAGs(false);
+  setSelectAllAGs(false);
  
   // 3. Notify parent component
   onChange({ selectedBUs: updatedList });
 };
 const handleSelectMAG = (record) => {
+  if (!record.Main_Article_Group_ID_c) return;
+  if (selectedMAGs.some((mag) => mag.Main_Article_Group_ID_c === record.Main_Article_Group_ID_c)) return;
   const newList = [...selectedMAGs, record];
   setSelectedMAGs(newList);
+  setSelectAllMAGs(false);
   onChange({ selectedMAGs: newList });
+  loadDistinctAgsForSelectedMags(newList);
+  const nextCount = new Set(newList.map((item) => item.Main_Article_Group_ID_c).filter(Boolean)).size;
+  if (mainArticleGroupList.length > 0 && nextCount === mainArticleGroupList.filter((item) => item.Main_Article_Group_ID_c).length) {
+    setSelectAllMAGs(true);
+  }
 };
- 
 const handleRemoveMAG = (buId) => {
   // 1. Update local state so it reappears in the available list
   const updatedList = selectedMAGs.filter(item => item.Main_Article_Group_ID_c !== buId);
@@ -357,6 +559,7 @@ const handleRemoveMAG = (buId) => {
   setSelectedAGs([]);
  
   // 3. Notify parent component
+  setSelectAllAGs(false);
   onChange({ selectedMAGs: updatedList });
 };
  
@@ -375,6 +578,34 @@ const handleRemoveAG = (buId) => {
  
   // 3. Notify parent component
   onChange({ selectedAGs: updatedList });
+};
+
+const handleToggleAllMAGs = (checked) => {
+  setSelectAllMAGs(checked);
+  if (checked) {
+    suppressAutoSelectMAGRef.current = false;
+    syncSelectedMAGs(mainArticleGroupList.filter((row) => row.Main_Article_Group_ID_c));
+    setSelectAllAGs(false);
+    loadDistinctAgsForSelectedMags(mainArticleGroupList.filter((row) => row.Main_Article_Group_ID_c));
+  } else {
+    suppressAutoSelectMAGRef.current = true;
+    setSelectedMAGs([]);
+    setSelectedAGs([]);
+    setArticleGroupList([]);
+    onChange({ selectedMAGs: [], selectedAGs: [] });
+  }
+};
+
+const handleToggleAllAGs = (checked) => {
+  setSelectAllAGs(checked);
+  if (checked) {
+    suppressAutoSelectAGRef.current = false;
+    syncSelectedAGs(articleGroupList.filter((row) => row.Article_Group_ID_c));
+  } else {
+    suppressAutoSelectAGRef.current = true;
+    setSelectedAGs([]);
+    onChange({ selectedAGs: [] });
+  }
 };
 
   useEffect(()=>
@@ -422,6 +653,8 @@ const handleRemoveAG = (buId) => {
       onChange({ selectedMAGs:[]});
       onChange({ selectedAGs:[]});
       onChange({ selectedMG3:""});
+      setSelectAllMAGs(false);
+      setSelectAllAGs(false);
     }
     setForm({
       ...form,
@@ -473,7 +706,7 @@ const handleRemoveAG = (buId) => {
   }
  
  
-const handleNext = () => {
+const handleNext = async() => {
  
   if (!data.LineType || !data.MatchProductsBy) {
     setError("Please fill all the fields before proceeding.");
@@ -481,7 +714,7 @@ const handleNext = () => {
   }
  
   if (data.MatchProductsBy === "Hierarchy") {
-    buildHierarchySelectedRecords();
+   await buildHierarchySelectedRecords();
  
     onChange({
       Field: "Hierarchy_c"
@@ -522,12 +755,12 @@ const handleNext = () => {
       return;
     }
 
-    buildHierarchySelectedRecords();
+   await buildHierarchySelectedRecords();
     onChange({ Field: "Hierarchy_c" });
   };
 
   validateHierarchy();
-}, [selectedBUs, selectedMAGs, selectedAGs,data.MG3]);
+}, [selectedBUs, selectedMAGs, selectedAGs, data.MG3, existingALIs]);
 
   return (
     <div className="form-card">
@@ -599,11 +832,22 @@ const handleNext = () => {
     <tr>
     <td className="label">Select Business Unit</td>
     <td>
-      <HierarchyLookupList
+      {/* <HierarchyLookupList
         // BusinessUnits filter will now automatically include items removed from selectedBUs
         records={businessUnits}
         onSelect={handleSelectBU}
         check ='Business Unit'
+      /> */}
+       <LookupTypeAhead
+        field={{
+          DisplayName: "Business Unit",
+          LookupObjectName: "Product_Hierarchy_c",
+          hierarchyMode: "BU",
+          selectedItems: selectedBUs,
+        }}
+        value={null}
+        onChange={handleSelectBU}
+        searchFn={(criteria) => searchHierarchyTypeAhead(criteria, "BU")}
       />
     </td>
   </tr>
@@ -637,11 +881,33 @@ const handleNext = () => {
     <tr>
       <td className="label">Main Article Group</td>
       <td>
-        <HierarchyLookupList
+        {/* <HierarchyLookupList
           records={mainArticleGroups}
           onSelect={handleSelectMAG}
           check='MAG'
+        /> */}
+         <LookupTypeAhead
+          field={{
+            DisplayName: "Main Article Group",
+            LookupObjectName: "Product_Hierarchy_c",
+            hierarchyMode: "MAG",
+            selectedItems: selectedMAGs,
+          }}
+          value={null}
+          onChange={handleSelectMAG}
+          searchFn={(criteria) => searchHierarchyTypeAhead(criteria, "MAG")}
         />
+        <label className="toggle-row toggle-control" style={{ paddingTop: "10px" }}>
+          <span style={{ marginRight: "10px" }}>Select All MAG(s)</span>
+          <span className="switch">
+            <input
+              type="checkbox"
+              checked={selectAllMAGs}
+              onChange={(e) => handleToggleAllMAGs(e.target.checked)}
+            />
+            <span className="slider round"></span>
+          </span>
+        </label>
       </td>
     </tr>
   )}
@@ -672,11 +938,33 @@ const handleNext = () => {
    <tr>
     <td className="label">Article Group</td>
     <td>
-  <HierarchyLookupList
+  {/* <HierarchyLookupList
     records={articleGroups}
     onSelect={handleSelectAG}
     check='AG'
+  /> */}
+      <LookupTypeAhead
+    field={{
+      DisplayName: "Article Group",
+      LookupObjectName: "Product_Hierarchy_c",
+      hierarchyMode: "AG",
+      selectedItems: selectedAGs,
+    }}
+    value={null}
+    onChange={handleSelectAG}
+    searchFn={(criteria) => searchHierarchyTypeAhead(criteria, "AG")}
   />
+  <label className="toggle-row toggle-control" style={{ paddingTop: "10px" }}>
+    <span style={{ marginRight: "10px" }}>Select All AG(s)</span>
+    <span className="switch">
+      <input
+        type="checkbox"
+        checked={selectAllAGs}
+        onChange={(e) => handleToggleAllAGs(e.target.checked)}
+      />
+      <span className="slider round"></span>
+    </span>
+  </label>
    </td>
   </tr>
 )}
