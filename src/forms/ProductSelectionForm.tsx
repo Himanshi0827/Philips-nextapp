@@ -146,7 +146,7 @@ useEffect(() => {
   };
 
   refreshParentOptions();
-}, [data.selectedProducts],[ data.MatchProductsBy]);
+}, [data.selectedProducts],[data.MatchProductsBy]);
 
 const handleProductSelect = async (record) => {
   handleAddRecord(record);
@@ -443,7 +443,7 @@ useEffect(()=>
 
   console.log("Checking Boolean Value",result);
 
-},[data?.selectedProducts,data?.selectedParentProducts])
+},[data?.selectedProducts],[data?.selectedParentProducts])
  
  
 const handleSelectBU = (record) => {
@@ -557,16 +557,25 @@ const handleRemoveMAG = (buId) => {
   // 2. Clear dependent selections (MAGs and AGs) because the parent BU is gone
   //setSelectedMAGs([]);
   setSelectedAGs([]);
- 
+ setArticleGroupList([]);
   // 3. Notify parent component
+  setSelectAllMAGs(false);
   setSelectAllAGs(false);
   onChange({ selectedMAGs: updatedList });
 };
  
 const handleSelectAG = (record) => {
+   if (!record.Article_Group_ID_c) return;
+  if (selectedAGs.some((ag) => ag.Article_Group_ID_c === record.Article_Group_ID_c)) return
   const newList = [...selectedAGs, record];
   setSelectedAGs(newList);
+  setSelectAllAGs(false);
   onChange({ selectedAGs: newList });
+    const nextCount = new Set(newList.map((item) => item.Article_Group_ID_c).filter(Boolean)).size;
+  if (articleGroupList.length > 0 && nextCount === articleGroupList.filter((item) => item.Article_Group_ID_c).length) {
+    setSelectAllAGs(true);
+  }
+
 };
 const handleRemoveAG = (buId) => {
   // 1. Update local state so it reappears in the available list
@@ -575,7 +584,7 @@ const handleRemoveAG = (buId) => {
  
   // 2. Clear dependent selections (MAGs and AGs) because the parent BU is gone
  
- 
+   setSelectAllAGs(false);
   // 3. Notify parent component
   onChange({ selectedAGs: updatedList });
 };
