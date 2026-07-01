@@ -1,0 +1,159 @@
+.agreement-page {
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: #f4f6f9;
+  min-height: 100vh;
+}
+
+.top-header {
+  background: #ffffff;
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #ddd;
+}
+
+.brand {
+  font-weight: bold;
+  color: #0070d2;
+  font-size: 24px;
+}
+
+.section-header {
+  background: #0070d2;
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+  background-color: #0070d2;
+  padding: 10px 15px;
+  border-radius: 4px 4px 0 0;
+}
+
+.header-actions button {
+  margin-left: 8px;
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+}
+ 
+.header-actions .primary {
+  background: #0070d2;
+  color: #fff;
+  border: none;
+}
+ 
+
+/* HEADER */
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+}
+
+.header h1 {
+  font-size: 26px;
+  color: #16325c;
+  margin: 0;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+
+
+.form-container {
+  padding: 30px 40px;
+  max-width: 600px;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.form-row label {
+  width: 160px;
+  font-size: 14px;
+  color: #3e3e3c;
+}
+
+.form-row input,
+.form-row textarea {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #c9c9c9;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+textarea {
+  height: 70px;
+  resize: vertical;
+}
+
+/* BUTTONS */
+
+.btn {
+  padding: 7px 18px;
+  border-radius: 4px;
+  border: 1px solid #c9c9c9;
+  background: white;
+  cursor: pointer;
+}
+
+.btn.primary {
+  background: #0176d3;
+  color: white;
+  border: none;
+}
+
+.btn:hover {
+  opacity: 0.9;
+}
+
+.bottom-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+
+  /* Each field */
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 220px;
+  }
+  
+  /* Labels */
+  .filter-group label {
+    font-size: 13px;
+    margin-bottom: 5px;
+    color: #444;
+    font-weight: bold;
+  }
+  
+  /* Inputs & Selects */
+  .filter-group select,
+  .filter-group input {
+    height: 32px;
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+
