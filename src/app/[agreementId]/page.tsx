@@ -62,11 +62,11 @@ const trying = await queryGetAgreementDetails(agreementId);
  setAgreementName(trying[0].Name);
 
 const activeRecords = records.filter(
-  (rec) => !rec.Apts_IsSoftDeleted_c
+  (rec: any) => !rec.Apts_IsSoftDeleted_c
 );
 
 const filtered_agreements = activeRecords.sort(
-  (x, y) => new Date(y.CreatedDate).getTime() - new Date(x.CreatedDate).getTime()
+  (x: any, y: any) => new Date(y.CreatedDate).getTime() - new Date(x.CreatedDate).getTime()
 );
 
 setAgreements(filtered_agreements);
