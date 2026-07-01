@@ -45,7 +45,7 @@ const agreementHeader = searchParams.get("agreementHeader");
         setLoading(true);
         setError(null);
 
-        const data = await queryAgreementLineItemsByAgreement(id);
+        const data = await queryAgreementLineItemsByAgreement(agreementId);
      
         const records = Array.isArray(data?.Data)
   ? data.Data
